@@ -1,12 +1,16 @@
 "use client";
 
+import CharacterCounter from "@/components/CharacterCounter";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import { OAuthStrategy } from "@clerk/types";
 import Image from "next/image";
+import { useState } from "react";
 
 const Home: React.FC = () => {
   const { signIn } = useSignIn();
   const { client, signOut } = useClerk();
+  const [postContent, setPostContent] = useState("");
+  const [showWarning, setShowWarning] = useState(true);
 
   if (!signIn) return null;
 
@@ -30,9 +34,94 @@ const Home: React.FC = () => {
         session.user?.externalAccounts[0].provider === "custom_threads"
     );
 
+  const isPostingDisabled = sessions.length === 0;
+
   return (
-    <div className="h-screen flex justify-center items-center">
-      <main className="w-full max-w-xs flex flex-col gap-6">
+    <div className="min-h-screen flex flex-col items-center p-4">
+      {/* Hero Section */}
+      <div className="w-full max-w-2xl text-center my-16">
+        <h1 className="font-bold text-4xl mb-3 font-mono">
+          Dual<span className="text-blue-500">Posts</span>
+        </h1>
+        <p className="text-xl text-gray-600 dark:text-gray-400">
+          Write once, post twice
+        </p>
+      </div>
+
+      {/* Main Content */}
+      <main className="w-full max-w-2xl flex flex-col gap-6">
+        <div className="relative bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
+          {isPostingDisabled && (
+            <div className="absolute inset-0 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10">
+              <div className="text-center p-4">
+                <p className="text-gray-600 dark:text-gray-400 font-medium mb-2">
+                  Connect an account to start posting
+                </p>
+                <svg
+                  className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                  />
+                </svg>
+              </div>
+            </div>
+          )}
+          <h2 className="text-md font-bold text-gray-500 dark:text-gray-400 mb-3">
+            Create Post
+          </h2>
+          <textarea
+            value={postContent}
+            onChange={(e) => setPostContent(e.target.value)}
+            placeholder="What's happening?"
+            disabled={isPostingDisabled}
+            className="w-full h-32 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          <div className="mt-4 space-y-3">
+            {postContent.length > 280 && showWarning && (
+              <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg">
+                <p className="text-sm">
+                  Only the first 280 characters will be visible on the timeline.
+                </p>
+                <button
+                  onClick={() => setShowWarning(false)}
+                  className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <CharacterCounter count={postContent.length} limit={280} />
+              <button
+                disabled={isPostingDisabled}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Connected Accounts Section - Keep existing code */}
         <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
           <h2 className="text-md font-bold text-gray-500 dark:text-gray-400 mb-3">
             Connected Accounts

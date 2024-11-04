@@ -17,7 +17,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "DualPosts",
-  description: "Post to X and Threads from one place",
+  description: "Write once, post twice",
 };
 
 type RootLayoutProps = PropsWithChildren;
