@@ -14,6 +14,7 @@ const Content = () => {
   const [postContent, setPostContent] = useState("");
   const [showWarning, setShowWarning] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   if (!signIn) return null;
 
@@ -32,6 +33,7 @@ const Content = () => {
   const handlePost = async () => {
     if (postContent.length === 0) return;
     setIsPosting(true);
+    setIsSuccess(false);
     try {
       const actionsToCall = [
         ...(hasXAccount ? [postToX] : []),
@@ -39,10 +41,9 @@ const Content = () => {
       ];
       await Promise.all(actionsToCall.map((action) => action(postContent)));
       setPostContent(""); // Clear the content after successful post
+      setIsSuccess(true);
     } catch (error) {
       console.error("Error posting:", error);
-    } finally {
-      setIsPosting(false);
     }
   };
 
@@ -51,6 +52,11 @@ const Content = () => {
       e.preventDefault();
       handlePost();
     }
+  };
+
+  const handleModalClose = () => {
+    setIsSuccess(false);
+    setIsPosting(false);
   };
 
   return (
@@ -113,6 +119,8 @@ const Content = () => {
             ...(hasThreadsAccount ? ["Threads"] : []),
           ] as ("X" | "Threads")[]
         }
+        isSuccess={isSuccess}
+        onClose={handleModalClose}
       />
     </>
   );
