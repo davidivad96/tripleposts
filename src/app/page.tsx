@@ -23,16 +23,25 @@ const Home: React.FC = () => {
       redirectUrlComplete: "/",
     });
 
-  const hasXAccount = () =>
-    sessions.some(
-      (session) => session.user?.externalAccounts[0].provider === "x"
-    );
+  const handlePost = () => {
+    if (postContent.length === 0) return;
+    console.log("Posting content:", postContent);
+  };
 
-  const hasThreadsAccount = () =>
-    sessions.some(
-      (session) =>
-        session.user?.externalAccounts[0].provider === "custom_threads"
-    );
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !isPostingDisabled) {
+      e.preventDefault();
+      handlePost();
+    }
+  };
+
+  const hasXAccount = sessions.some(
+    (session) => session.user?.externalAccounts[0].provider === "x"
+  );
+
+  const hasThreadsAccount = sessions.some(
+    (session) => session.user?.externalAccounts[0].provider === "custom_threads"
+  );
 
   const isPostingDisabled = sessions.length === 0;
 
@@ -79,6 +88,7 @@ const Home: React.FC = () => {
           <textarea
             value={postContent}
             onChange={(e) => setPostContent(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="What's happening?"
             disabled={isPostingDisabled}
             className="w-full h-32 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
@@ -112,8 +122,9 @@ const Home: React.FC = () => {
             <div className="flex items-center justify-between">
               <CharacterCounter count={postContent.length} limit={280} />
               <button
-                disabled={isPostingDisabled}
+                disabled={isPostingDisabled || postContent.length === 0}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handlePost}
               >
                 Post
               </button>
@@ -190,7 +201,7 @@ const Home: React.FC = () => {
             {/* Connect Account Buttons */}
             {sessions.length < 2 && (
               <div className="space-y-3">
-                {!hasXAccount() && (
+                {!hasXAccount && (
                   <button
                     onClick={() => signInWith("oauth_x")}
                     className="flex items-center gap-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 w-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -205,7 +216,7 @@ const Home: React.FC = () => {
                     <span>Connect X</span>
                   </button>
                 )}
-                {!hasThreadsAccount() && (
+                {!hasThreadsAccount && (
                   <button
                     onClick={() => signInWith("oauth_custom_threads")}
                     className="flex items-center gap-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 w-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
