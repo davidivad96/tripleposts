@@ -20,18 +20,30 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "DualPosts",
   description: "Write once, post twice",
+  icons: {
+    icon: [
+      {
+        media: "(prefers-color-scheme: light)",
+        url: "/images/logo_light.png",
+      },
+      {
+        media: "(prefers-color-scheme: dark)",
+        url: "/images/logo_dark.png",
+      },
+    ],
+  },
 };
 
 type RootLayoutProps = PropsWithChildren;
 
 const RootLayout = ({ children }: RootLayoutProps) => (
   <ClerkProvider>
-    <html lang="en" className="light h-full">
+    <html lang="en" className="h-full">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
       >
         <Header />
-        <div className="flex-1 overflow-hidden">{children}</div>
+        {children}
         <ThemeToggle />
       </body>
     </html>
