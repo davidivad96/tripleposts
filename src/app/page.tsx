@@ -1,16 +1,19 @@
 "use client";
 
 import CharacterCounter from "@/components/CharacterCounter";
+import LoadingModal from "@/components/LoadingModal";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import { OAuthStrategy } from "@clerk/types";
 import Image from "next/image";
 import { useState } from "react";
+import { postToThreads, postToX } from "./actions";
 
 const Home: React.FC = () => {
   const { signIn } = useSignIn();
   const { client, signOut } = useClerk();
   const [postContent, setPostContent] = useState("");
   const [showWarning, setShowWarning] = useState(true);
+  const [isPosting, setIsPosting] = useState(false);
 
   if (!signIn) return null;
 
@@ -23,9 +26,21 @@ const Home: React.FC = () => {
       redirectUrlComplete: "/",
     });
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (postContent.length === 0) return;
-    console.log("Posting content:", postContent);
+    setIsPosting(true);
+    try {
+      const actionsToCall = [
+        ...(hasXAccount ? [postToX] : []),
+        ...(hasThreadsAccount ? [postToThreads] : []),
+      ];
+      await Promise.all(actionsToCall.map((action) => action(postContent)));
+      setPostContent(""); // Clear the content after successful post
+    } catch (error) {
+      console.error("Error posting:", error);
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -122,11 +137,39 @@ const Home: React.FC = () => {
             <div className="flex items-center justify-between">
               <CharacterCounter count={postContent.length} limit={280} />
               <button
-                disabled={isPostingDisabled || postContent.length === 0}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  isPostingDisabled || postContent.length === 0 || isPosting
+                }
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 onClick={handlePost}
               >
-                Post
+                {isPosting ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    <span>Posting...</span>
+                  </>
+                ) : (
+                  "Post"
+                )}
               </button>
             </div>
           </div>
@@ -236,6 +279,15 @@ const Home: React.FC = () => {
           </div>
         </div>
       </main>
+      <LoadingModal
+        isOpen={isPosting}
+        platforms={
+          [
+            ...(hasXAccount ? ["X"] : []),
+            ...(hasThreadsAccount ? ["Threads"] : []),
+          ] as ("X" | "Threads")[]
+        }
+      />
     </div>
   );
 };
