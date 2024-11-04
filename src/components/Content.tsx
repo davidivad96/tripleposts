@@ -8,13 +8,14 @@ import ArrowDownIcon from "./icons/ArrowDown";
 import CloseIcon from "./icons/Close";
 import LoadingModal from "./LoadingModal";
 
+type PostStatus = "idle" | "posting" | "success";
+
 const Content = () => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
   const [postContent, setPostContent] = useState("");
   const [showWarning, setShowWarning] = useState(true);
-  const [isPosting, setIsPosting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [status, setStatus] = useState<PostStatus>("idle");
 
   if (!signIn) return null;
 
@@ -32,8 +33,7 @@ const Content = () => {
 
   const handlePost = async () => {
     if (postContent.length === 0) return;
-    setIsPosting(true);
-    setIsSuccess(false);
+    setStatus("posting");
     try {
       const actionsToCall = [
         ...(hasXAccount ? [postToX] : []),
@@ -41,9 +41,10 @@ const Content = () => {
       ];
       await Promise.all(actionsToCall.map((action) => action(postContent)));
       setPostContent(""); // Clear the content after successful post
-      setIsSuccess(true);
+      setStatus("success");
     } catch (error) {
       console.error("Error posting:", error);
+      setStatus("idle");
     }
   };
 
@@ -55,8 +56,7 @@ const Content = () => {
   };
 
   const handleModalClose = () => {
-    setIsSuccess(false);
-    setIsPosting(false);
+    setStatus("idle");
   };
 
   return (
@@ -101,7 +101,9 @@ const Content = () => {
             <CharacterCounter count={postContent.length} limit={280} />
             <button
               disabled={
-                isPostingDisabled || postContent.length === 0 || isPosting
+                isPostingDisabled ||
+                postContent.length === 0 ||
+                status === "posting"
               }
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               onClick={handlePost}
@@ -112,14 +114,14 @@ const Content = () => {
         </div>
       </div>
       <LoadingModal
-        isOpen={isPosting}
+        isOpen={status !== "idle"}
         platforms={
           [
             ...(hasXAccount ? ["X"] : []),
             ...(hasThreadsAccount ? ["Threads"] : []),
           ] as ("X" | "Threads")[]
         }
-        isSuccess={isSuccess}
+        isSuccess={status === "success"}
         onClose={handleModalClose}
       />
     </>
