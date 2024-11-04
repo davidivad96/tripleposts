@@ -1,3 +1,4 @@
+import Header from "@/components/Header";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
@@ -25,11 +26,12 @@ type RootLayoutProps = PropsWithChildren;
 
 const RootLayout = ({ children }: RootLayoutProps) => (
   <ClerkProvider>
-    <html lang="en" className="light">
+    <html lang="en" className="light h-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
       >
-        {children}
+        <Header />
+        <div className="flex-1 overflow-hidden">{children}</div>
         <ThemeToggle />
       </body>
     </html>
