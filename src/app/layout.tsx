@@ -1,3 +1,4 @@
+import ThemeToggle from "@/components/ThemeToggle";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
@@ -24,11 +25,12 @@ type RootLayoutProps = PropsWithChildren;
 
 const RootLayout = ({ children }: RootLayoutProps) => (
   <ClerkProvider>
-    <html lang="en">
+    <html lang="en" className="light">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <ThemeToggle />
       </body>
     </html>
   </ClerkProvider>
