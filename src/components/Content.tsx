@@ -1,6 +1,7 @@
 "use client";
 
 import { postToThreads, postToX } from "@/app/actions";
+import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
 import CharacterCounter from "./CharacterCounter";
@@ -8,39 +9,62 @@ import ArrowDownIcon from "./icons/ArrowDown";
 import CloseIcon from "./icons/Close";
 import LoadingModal from "./LoadingModal";
 
-type PostStatus = "idle" | "posting" | "success";
-
 const Content = () => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
   const [postContent, setPostContent] = useState("");
   const [showWarning, setShowWarning] = useState(true);
   const [status, setStatus] = useState<PostStatus>("idle");
+  const [postResults, setPostResults] = useState<PostResult[]>([]);
 
   if (!signIn) return null;
 
-  const sessions = client.sessions || [];
+  const sessions = client.activeSessions || [];
 
-  const hasXAccount = sessions.some(
+  // Get X session
+  const xSession = sessions.find(
     (session) => session.user?.externalAccounts[0].provider === "x"
   );
 
-  const hasThreadsAccount = sessions.some(
+  // Get Threads session
+  const threadsSession = sessions.find(
     (session) => session.user?.externalAccounts[0].provider === "custom_threads"
   );
 
+  const hasXAccount = !!xSession;
+  const hasThreadsAccount = !!threadsSession;
   const isPostingDisabled = sessions.length === 0;
 
   const handlePost = async () => {
     if (postContent.length === 0) return;
     setStatus("posting");
+    setPostResults([]);
     try {
+      const xUserId = xSession?.user?.id;
+      const threadsUserId = threadsSession?.user?.id;
       const actionsToCall = [
-        ...(hasXAccount ? [postToX] : []),
-        ...(hasThreadsAccount ? [postToThreads] : []),
+        ...(hasXAccount && xUserId
+          ? [
+              async () => ({
+                platform: "X",
+                url: await postToX(xUserId, postContent),
+              }),
+            ]
+          : []),
+        ...(hasThreadsAccount && threadsUserId
+          ? [
+              async () => ({
+                platform: "Threads",
+                url: await postToThreads(threadsUserId, postContent),
+              }),
+            ]
+          : []),
       ];
-      await Promise.all(actionsToCall.map((action) => action(postContent)));
-      setPostContent(""); // Clear the content after successful post
+      const results = await Promise.all(
+        actionsToCall.map((action) => action())
+      );
+      setPostResults(results as PostResult[]);
+      setPostContent("");
       setStatus("success");
     } catch (error) {
       console.error("Error posting:", error);
@@ -123,6 +147,7 @@ const Content = () => {
         }
         isSuccess={status === "success"}
         onClose={handleModalClose}
+        results={postResults}
       />
     </>
   );

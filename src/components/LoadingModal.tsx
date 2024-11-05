@@ -1,3 +1,4 @@
+import { PostResult } from "@/types";
 import Fireworks from "react-canvas-confetti/dist/presets/fireworks";
 import CloseIcon from "./icons/Close";
 import LoadingIcon from "./icons/LoadingIcon";
@@ -9,6 +10,7 @@ type LoadingModalProps = {
   platforms: ("X" | "Threads")[];
   isSuccess?: boolean;
   onClose?: () => void;
+  results?: PostResult[];
 };
 
 const LoadingModal: React.FC<LoadingModalProps> = ({
@@ -16,6 +18,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
   platforms,
   isSuccess = false,
   onClose,
+  results = [],
 }) => {
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && isSuccess) {
@@ -80,9 +83,8 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                     {isSuccess && (
                       <a
                         href={
-                          platform === "X"
-                            ? "https://x.com"
-                            : "https://threads.net"
+                          results.find((r) => r.platform === platform)?.url ||
+                          "#"
                         }
                         target="_blank"
                         rel="noopener noreferrer"

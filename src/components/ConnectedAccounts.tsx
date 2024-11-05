@@ -51,7 +51,9 @@ const ConnectedAccounts = () => {
             <div className="flex flex-col">
               <p className="font-medium">{session.user?.fullName}</p>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {session.user?.username ? `@${session.user?.username}` : ""}
+                {session.user?.externalAccounts[0].username
+                  ? `@${session.user.externalAccounts[0].username}`
+                  : ""}
               </span>
             </div>
             <div className="ml-auto flex items-center gap-2">
