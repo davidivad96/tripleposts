@@ -4,8 +4,25 @@ import { clerkClient } from "@clerk/nextjs/server";
 
 export const postToX = async (userId: string, content: string) => {
   console.log("Posting to X:", content);
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  return "https://x.com";
+  const clerk = await clerkClient();
+  const [userResponse, tokenResponse] = await Promise.all([
+    clerk.users.getUser(userId),
+    clerk.users.getUserOauthAccessToken(userId, "oauth_x"),
+  ]);
+  const username = userResponse.externalAccounts[0].username;
+  const accessToken = tokenResponse.data[0].token;
+  const res = await fetch("https://api.twitter.com/2/tweets", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text: content }),
+  });
+  const {
+    data: { id },
+  } = (await res.json()) as { data: { id: string } };
+  return `https://x.com/${username}/status/${id}`;
 };
 
 export const postToThreads = async (userId: string, content: string) => {
