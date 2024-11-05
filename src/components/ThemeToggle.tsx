@@ -1,34 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useMounted from "@/hooks/useMounted";
+import { useTheme } from "next-themes";
 import MoonIcon from "./icons/Moon";
 import SunIcon from "./icons/Sun";
 
 const ThemeToggle = () => {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const mounted = useMounted();
+  const { theme, setTheme } = useTheme();
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    // Check initial theme
-    if (savedTheme === "dark") {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
-    } else {
-      setTheme("light");
-      document.documentElement.classList.remove("dark");
-    }
-  }, []);
+  if (!mounted) return null;
 
   const toggleTheme = () => {
-    if (theme === "light") {
-      setTheme("dark");
-      localStorage.setItem("theme", "dark");
-      document.documentElement.classList.add("dark");
-    } else {
-      setTheme("light");
-      localStorage.setItem("theme", "light");
-      document.documentElement.classList.remove("dark");
-    }
+    setTheme(theme === "light" ? "dark" : "light");
   };
 
   return (

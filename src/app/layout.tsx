@@ -1,7 +1,9 @@
+import DynamicFavicon from "@/components/DynamicFavicon";
 import Header from "@/components/Header";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import { ThemeProvider } from "next-themes";
 import localFont from "next/font/local";
 import { PropsWithChildren } from "react";
 import "./globals.css";
@@ -26,13 +28,16 @@ type RootLayoutProps = PropsWithChildren;
 
 const RootLayout = ({ children }: RootLayoutProps) => (
   <ClerkProvider>
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
       >
-        <Header />
-        {children}
-        <ThemeToggle />
+        <ThemeProvider attribute="class">
+          <DynamicFavicon />
+          <Header />
+          {children}
+          <ThemeToggle />
+        </ThemeProvider>
       </body>
     </html>
   </ClerkProvider>
