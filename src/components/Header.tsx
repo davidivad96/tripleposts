@@ -8,17 +8,6 @@ const Header = () => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    // Check initial theme
-    if (
-      localStorage.theme === "dark" ||
-      (!localStorage.theme &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches)
-    ) {
-      setTheme("dark");
-    } else {
-      setTheme("light");
-    }
-
     // Listen for theme changes
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {

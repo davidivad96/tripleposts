@@ -20,18 +20,6 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "DualPosts",
   description: "Write once, post twice",
-  icons: {
-    icon: [
-      {
-        media: "(prefers-color-scheme: light)",
-        url: "/images/logo_light.png",
-      },
-      {
-        media: "(prefers-color-scheme: dark)",
-        url: "/images/logo_dark.png",
-      },
-    ],
-  },
 };
 
 type RootLayoutProps = PropsWithChildren;

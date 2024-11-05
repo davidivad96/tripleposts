@@ -9,11 +9,7 @@ const ThemeToggle = () => {
 
   useEffect(() => {
     // Check initial theme
-    if (
-      localStorage.theme === "dark" ||
-      (!localStorage.theme &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches)
-    ) {
+    if (localStorage.theme === "dark") {
       setTheme("dark");
       document.documentElement.classList.add("dark");
     } else {
