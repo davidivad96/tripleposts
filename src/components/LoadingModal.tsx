@@ -70,7 +70,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
               <h3 className="text-lg font-semibold mb-4">
                 {isSuccess ? "Posted successfully!" : "Posting to platforms..."}
               </h3>
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-row justify-center items-center gap-3">
                 {platforms.map((platform) => (
                   <div
                     key={platform}
@@ -81,7 +81,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                       <a
                         href={
                           platform === "X"
-                            ? "https://twitter.com"
+                            ? "https://x.com"
                             : "https://threads.net"
                         }
                         target="_blank"

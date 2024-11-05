@@ -8,8 +8,9 @@ const ThemeToggle = () => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
     // Check initial theme
-    if (localStorage.theme === "dark") {
+    if (savedTheme === "dark") {
       setTheme("dark");
       document.documentElement.classList.add("dark");
     } else {
@@ -21,11 +22,11 @@ const ThemeToggle = () => {
   const toggleTheme = () => {
     if (theme === "light") {
       setTheme("dark");
-      localStorage.theme = "dark";
+      localStorage.setItem("theme", "dark");
       document.documentElement.classList.add("dark");
     } else {
       setTheme("light");
-      localStorage.theme = "light";
+      localStorage.setItem("theme", "light");
       document.documentElement.classList.remove("dark");
     }
   };
