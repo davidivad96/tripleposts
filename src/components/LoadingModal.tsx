@@ -1,14 +1,18 @@
-import { PostResult } from "@/types";
+import { PostResult, PostStatus } from "@/types";
 import Fireworks from "react-canvas-confetti/dist/presets/fireworks";
 import CloseIcon from "./icons/Close";
+import ErrorIcon from "./icons/Error";
 import LoadingIcon from "./icons/LoadingIcon";
+import SuccessIcon from "./icons/Success";
 import ThreadsIcon from "./icons/Threads";
+import WarningIcon from "./icons/Warning";
 import XIcon from "./icons/X";
 
 type LoadingModalProps = {
   isOpen: boolean;
   platforms: ("X" | "Threads")[];
-  isSuccess?: boolean;
+  status: PostStatus;
+  error?: { platform: string; message: string } | null;
   onClose?: () => void;
   results?: PostResult[];
 };
@@ -16,12 +20,16 @@ type LoadingModalProps = {
 const LoadingModal: React.FC<LoadingModalProps> = ({
   isOpen,
   platforms,
-  isSuccess = false,
+  status,
+  error,
   onClose,
   results = [],
 }) => {
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && isSuccess) {
+    if (
+      e.target === e.currentTarget &&
+      (status === "success" || status === "error" || status === "partial_success")
+    ) {
       onClose?.();
     }
   };
@@ -35,8 +43,8 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
         onClick={handleBackdropClick}
       >
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm mx-4 relative">
-          {/* Close button - only shown when successful */}
-          {isSuccess && (
+          {/* Close button - shown on success or error */}
+          {(status === "success" || status === "error") && (
             <button
               onClick={onClose}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -48,31 +56,18 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
           <div className="space-y-4">
             <div className="flex justify-center">
               <div className="relative">
-                {isSuccess ? (
-                  <div className="text-green-500 w-20 h-20 flex items-center justify-center">
-                    <svg
-                      className="w-16 h-16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                ) : (
-                  <LoadingIcon />
-                )}
+                {status === "success" && <SuccessIcon />}
+                {status === "error" && <ErrorIcon />}
+                {status === "partial_success" && <WarningIcon />}
+                {status === "posting" && <LoadingIcon />}
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-4">
-                {isSuccess ? "Posted successfully!" : "Posting to platforms..."}
-              </h3>
+              {status === "posting" && (
+                <h3 className="text-lg font-semibold mb-4">
+                  Posting to platforms...
+                </h3>
+              )}
               <div className="flex flex-row justify-center items-center gap-3">
                 {platforms.map((platform) => (
                   <div
@@ -80,26 +75,31 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                     className="flex items-center gap-2 text-gray-600 dark:text-gray-400"
                   >
                     {platform === "X" ? <XIcon /> : <ThreadsIcon />}
-                    {isSuccess && (
-                      <a
-                        href={
-                          results.find((r) => r.platform === platform)?.url ||
-                          "#"
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
-                      >
-                        View post
-                      </a>
-                    )}
+                    {(status === "success" ||
+                      status === "partial_success" ||
+                      status === "error") && (
+                        results.find((r) => r.platform === platform) ? (
+                          <a
+                            href={results.find((r) => r.platform === platform)?.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline"
+                          >
+                            View post
+                          </a>
+                        ) : (
+                          <span className="text-red-500 dark:text-red-400">
+                            {error?.platform === platform ? error.message : "Failed to post"}
+                          </span>
+                        )
+                      )}
                   </div>
                 ))}
               </div>
             </div>
           </div>
         </div>
-        {isSuccess && <Fireworks autorun={{ speed: 2, duration: 1000 }} />}
+        {status === "success" && <Fireworks autorun={{ speed: 2, duration: 1000 }} />}
       </div>
     </>
   );

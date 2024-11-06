@@ -1,6 +1,7 @@
 "use client";
 
 import { postToThreads, postToX } from "@/app/actions";
+import { PostError } from "@/lib/errors";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import { useState } from "react";
@@ -15,6 +16,7 @@ const Content = () => {
   const [postContent, setPostContent] = useState("");
   const [showWarning, setShowWarning] = useState(true);
   const [status, setStatus] = useState<PostStatus>("idle");
+  const [error, setError] = useState<{ platform: string; message: string } | null>(null);
   const [postResults, setPostResults] = useState<PostResult[]>([]);
 
   if (!signIn) return null;
@@ -38,37 +40,64 @@ const Content = () => {
   const handlePost = async () => {
     if (postContent.length === 0) return;
     setStatus("posting");
+    setError(null);
     setPostResults([]);
+
     try {
       const xUserId = xSession?.user?.id;
       const threadsUserId = threadsSession?.user?.id;
-      const actionsToCall = [
+      const results = await Promise.allSettled([
         ...(hasXAccount && xUserId
           ? [
-              async () => ({
-                platform: "X",
-                url: await postToX(xUserId, postContent),
-              }),
-            ]
+            postToX(xUserId, postContent).then((url) => ({
+              platform: "X",
+              url,
+            })),
+          ]
           : []),
         ...(hasThreadsAccount && threadsUserId
           ? [
-              async () => ({
-                platform: "Threads",
-                url: await postToThreads(threadsUserId, postContent),
-              }),
-            ]
+            postToThreads(threadsUserId, postContent).then((url) => ({
+              platform: "Threads",
+              url,
+            })),
+          ]
           : []),
-      ];
-      const results = await Promise.all(
-        actionsToCall.map((action) => action())
-      );
-      setPostResults(results as PostResult[]);
-      setPostContent("");
-      setStatus("success");
+      ]);
+
+      const successfulPosts = results
+        .filter((result): result is PromiseFulfilledResult<PostResult> =>
+          result.status === "fulfilled"
+        )
+        .map((result) => result.value);
+
+      const failedPosts = results
+        .filter((result): result is PromiseRejectedResult =>
+          result.status === "rejected"
+        )
+        .map((result) => result.reason);
+
+      setPostResults(successfulPosts);
+
+      if (failedPosts.length > 0) {
+        const firstError = failedPosts[0] as PostError;
+        setError({
+          platform: firstError.platform,
+          message: firstError.message,
+        });
+        // If we have some successful posts, show partial success
+        setStatus(successfulPosts.length > 0 ? "partial_success" : "error");
+      } else {
+        setPostContent("");
+        setStatus("success");
+      }
     } catch (error) {
       console.error("Error posting:", error);
-      setStatus("idle");
+      setError({
+        platform: "unknown",
+        message: "An unexpected error occurred",
+      });
+      setStatus("error");
     }
   };
 
@@ -145,7 +174,8 @@ const Content = () => {
             ...(hasThreadsAccount ? ["Threads"] : []),
           ] as ("X" | "Threads")[]
         }
-        isSuccess={status === "success"}
+        status={status}
+        error={error}
         onClose={handleModalClose}
         results={postResults}
       />

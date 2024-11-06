@@ -1,53 +1,137 @@
 "use server";
 
+import { PostError } from "@/lib/errors";
 import { clerkClient } from "@clerk/nextjs/server";
 
 export const postToX = async (userId: string, content: string) => {
   console.log("Posting to X:", content);
-  const clerk = await clerkClient();
-  const [userResponse, tokenResponse] = await Promise.all([
-    clerk.users.getUser(userId),
-    clerk.users.getUserOauthAccessToken(userId, "oauth_x"),
-  ]);
-  const username = userResponse.externalAccounts[0].username;
-  const accessToken = tokenResponse.data[0].token;
-  const res = await fetch("https://api.twitter.com/2/tweets", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text: content }),
-  });
-  const {
-    data: { id },
-  } = (await res.json()) as { data: { id: string } };
-  return `https://x.com/${username}/status/${id}`;
+  try {
+    const clerk = await clerkClient();
+    const [userResponse, tokenResponse] = await Promise.all([
+      clerk.users.getUser(userId),
+      clerk.users.getUserOauthAccessToken(userId, "oauth_x"),
+    ]);
+
+    if (!userResponse.externalAccounts[0]?.username) {
+      throw new PostError("X account not properly connected", "X");
+    }
+
+    const username = userResponse.externalAccounts[0].username;
+    const accessToken = tokenResponse.data[0]?.token;
+
+    if (!accessToken) {
+      throw new PostError("X access token not found", "X");
+    }
+
+    const res = await fetch("https://api.twitter.com/2/tweets", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: content }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new PostError(
+        error.message || "Failed to post to X",
+        "X",
+        res.status
+      );
+    }
+
+    const { data } = (await res.json()) as { data: { id: string } };
+    return `https://x.com/${username}/status/${data.id}`;
+  } catch (error) {
+    if (error instanceof PostError) throw error;
+    throw new PostError(
+      error instanceof Error ? error.message : "Failed to post to X",
+      "X"
+    );
+  }
 };
 
 export const postToThreads = async (userId: string, content: string) => {
   console.log("Posting to Threads:", content);
-  const clerk = await clerkClient();
-  const userResponse = await clerk.users.getUser(userId);
-  const threadsUserId = userResponse.externalAccounts[0].externalId;
-  const accessToken =
-    userResponse.privateMetadata.accessToken ??
-    (await clerk.users.getUserOauthAccessToken(userId, "oauth_custom_threads"))
-      .data[0].token;
-  const res1 = await fetch(
-    `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=TEXT&text=${content}&access_token=${accessToken}`,
-    { method: "POST" }
-  );
-  const { id: creationId } = (await res1.json()) as { id: string };
-  const res2 = await fetch(
-    `https://graph.threads.net/v1.0/${threadsUserId}/threads_publish?creation_id=${creationId}&access_token=${accessToken}`,
-    { method: "POST" }
-  );
-  const { id: mediaId } = (await res2.json()) as { id: string };
-  const res3 = await fetch(
-    `https://graph.threads.net/v1.0/${mediaId}?fields=permalink&access_token=${accessToken}`,
-    { method: "GET" }
-  );
-  const { permalink } = (await res3.json()) as { permalink: string };
-  return permalink;
+  try {
+    const clerk = await clerkClient();
+    const userResponse = await clerk.users.getUser(userId);
+
+    if (!userResponse.externalAccounts[0]?.externalId) {
+      throw new PostError("Threads account not properly connected", "Threads");
+    }
+
+    const threadsUserId = userResponse.externalAccounts[0].externalId;
+    const accessToken =
+      userResponse.privateMetadata.accessToken ??
+      (
+        await clerk.users.getUserOauthAccessToken(
+          userId,
+          "oauth_custom_threads"
+        )
+      ).data[0]?.token;
+
+    if (!accessToken) {
+      throw new PostError("Threads access token not found", "Threads");
+    }
+
+    // Create the post
+    const res1 = await fetch(
+      `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=TEXT&text=${content}&access_token=${accessToken}`,
+      { method: "POST" }
+    );
+
+    if (!res1.ok) {
+      const error = await res1.json();
+      throw new PostError(
+        error.message || "Failed to create Threads post",
+        "Threads",
+        res1.status
+      );
+    }
+
+    const { id: creationId } = (await res1.json()) as { id: string };
+
+    // Publish the post
+    const res2 = await fetch(
+      `https://graph.threads.net/v1.0/${threadsUserId}/threads_publish?creation_id=${creationId}&access_token=${accessToken}`,
+      { method: "POST" }
+    );
+
+    if (!res2.ok) {
+      const error = await res2.json();
+      throw new PostError(
+        error.message || "Failed to publish Threads post",
+        "Threads",
+        res2.status
+      );
+    }
+
+    const { id: mediaId } = (await res2.json()) as { id: string };
+
+    // Get the permalink
+    const res3 = await fetch(
+      `https://graph.threads.net/v1.0/${mediaId}?fields=permalink&access_token=${accessToken}`,
+      { method: "GET" }
+    );
+
+    if (!res3.ok) {
+      const error = await res3.json();
+      throw new PostError(
+        error.message || "Failed to get Threads permalink",
+        "Threads",
+        res3.status
+      );
+    }
+
+    const { permalink } = (await res3.json()) as { permalink: string };
+    return permalink;
+  } catch (error) {
+    if (error instanceof PostError) throw error;
+    throw new PostError(
+      error instanceof Error ? error.message : "Failed to post to Threads",
+      "Threads"
+    );
+  }
 };
