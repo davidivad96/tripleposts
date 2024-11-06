@@ -28,12 +28,12 @@ export const postToX = async (userId: string, content: string) => {
 export const postToThreads = async (userId: string, content: string) => {
   console.log("Posting to Threads:", content);
   const clerk = await clerkClient();
-  const [userResponse, tokenResponse] = await Promise.all([
-    clerk.users.getUser(userId),
-    clerk.users.getUserOauthAccessToken(userId, "oauth_custom_threads"),
-  ]);
+  const userResponse = await clerk.users.getUser(userId);
   const threadsUserId = userResponse.externalAccounts[0].externalId;
-  const accessToken = tokenResponse.data[0].token;
+  const accessToken =
+    userResponse.privateMetadata.accessToken ??
+    (await clerk.users.getUserOauthAccessToken(userId, "oauth_custom_threads"))
+      .data[0].token;
   const res1 = await fetch(
     `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=TEXT&text=${content}&access_token=${accessToken}`,
     { method: "POST" }
