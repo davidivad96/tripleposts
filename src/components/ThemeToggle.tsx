@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import MoonIcon from "./icons/Moon";
 import SunIcon from "./icons/Sun";
 
-const ThemeToggle = () => {
+const ThemeToggle: React.FC = () => {
   const mounted = useMounted();
   const { theme, setTheme } = useTheme();
 

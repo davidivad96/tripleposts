@@ -4,13 +4,16 @@ import { postToThreads, postToX } from "@/app/actions";
 import { PostError } from "@/lib/errors";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
+import Placeholder from "@tiptap/extension-placeholder";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import { useState } from "react";
 import CharacterCounter from "./CharacterCounter";
 import ArrowDownIcon from "./icons/ArrowDown";
 import CloseIcon from "./icons/Close";
 import LoadingModal from "./LoadingModal";
 
-const Content = () => {
+const Content: React.FC = () => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
   const [postContent, setPostContent] = useState("");
@@ -18,6 +21,22 @@ const Content = () => {
   const [status, setStatus] = useState<PostStatus>("idle");
   const [error, setError] = useState<{ platform: string; message: string } | null>(null);
   const [postResults, setPostResults] = useState<PostResult[]>([]);
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: "What's happening?!",
+        emptyNodeClass:
+          'first:before:text-gray-400 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0 first:before:opacity-50',
+      })
+    ],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: "prose dark:prose-invert outline-none focus:ring-0 p-4 rounded-lg bg-gray-100 dark:bg-gray-900 min-h-[90px] max-h-[200px] overflow-y-scroll focus-within:border focus-within:border-blue-500 dark:focus-within:border-blue-500",
+      }
+    }
+  })
 
   if (!signIn) return null;
 
@@ -101,16 +120,15 @@ const Content = () => {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !isPostingDisabled) {
-      e.preventDefault();
-      handlePost();
-    }
-  };
+
 
   const handleModalClose = () => {
     setStatus("idle");
   };
+
+  const text = editor?.getText();
+
+  console.log(editor?.getHTML());
 
   return (
     <>
@@ -128,14 +146,15 @@ const Content = () => {
         <h2 className="text-md font-bold text-gray-500 dark:text-gray-400 mb-3">
           Create Post
         </h2>
-        <textarea
+        <EditorContent editor={editor} />
+        {/* <textarea
           value={postContent}
           onChange={(e) => setPostContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="What's happening?"
           disabled={isPostingDisabled}
           className="w-full h-32 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-        />
+        /> */}
         <div className="mt-4 space-y-3">
           {postContent.length > 280 && showWarning && (
             <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg">
@@ -151,18 +170,46 @@ const Content = () => {
             </div>
           )}
           <div className="flex items-center justify-between">
-            <CharacterCounter count={postContent.length} limit={280} />
-            <button
-              disabled={
-                isPostingDisabled ||
-                postContent.length === 0 ||
-                status === "posting"
-              }
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              onClick={handlePost}
-            >
-              Post
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (editor) {
+                    editor.chain().focus().toggleBold().run();
+                  }
+                }}
+                className={`${editor?.isActive('bold') ? 'bg-blue-500 dark:bg-white text-white dark:text-gray-800' : 'bg-transparent text-blue-500 dark:text-white'
+                  } font-bold py-[6px] px-[12px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800`}
+              >
+                B
+              </button>
+              <button
+                onClick={() => {
+                  if (editor) {
+                    editor.chain().focus().toggleItalic().run();
+                  }
+                }}
+                className={`${editor?.isActive('italic') ? 'bg-blue-500 dark:bg-white text-white dark:text-gray-800' : 'bg-transparent text-blue-500 dark:text-white'
+                  } italic py-[6px] px-[16px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800`}
+              >
+                I
+              </button>
+            </div>
+            <div className="flex items-center gap-4">
+              {text?.length && text.length > 0 ? (
+                <CharacterCounter count={text.length} limit={280} />
+              ) : null}
+              <button
+                disabled={
+                  isPostingDisabled ||
+                  postContent.length === 0 ||
+                  status === "posting"
+                }
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                onClick={handlePost}
+              >
+                Post
+              </button>
+            </div>
           </div>
         </div>
       </div>

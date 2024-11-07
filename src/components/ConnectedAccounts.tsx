@@ -7,7 +7,7 @@ import SignOutIcon from "./icons/SignOut";
 import ThreadsIcon from "./icons/Threads";
 import XIcon from "./icons/X";
 
-const ConnectedAccounts = () => {
+const ConnectedAccounts: React.FC = () => {
   const { signIn } = useSignIn();
   const { client, signOut } = useClerk();
 
