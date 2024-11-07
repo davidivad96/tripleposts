@@ -78,7 +78,9 @@ export const postToThreads = async (userId: string, content: string) => {
 
     // Create the post
     const res1 = await fetch(
-      `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=TEXT&text=${content}&access_token=${accessToken}`,
+      `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=TEXT&text=${encodeURIComponent(
+        content
+      )}&access_token=${accessToken}`,
       { method: "POST" }
     );
 

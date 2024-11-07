@@ -2,6 +2,7 @@
 
 import { postToThreads, postToX } from "@/app/actions";
 import { PostError } from "@/lib/errors";
+import { jsonToText } from "@/lib/utils";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -16,12 +17,12 @@ import LoadingModal from "./LoadingModal";
 const Content: React.FC = () => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
-  const [postContent, setPostContent] = useState("");
   const [showWarning, setShowWarning] = useState(true);
   const [status, setStatus] = useState<PostStatus>("idle");
   const [error, setError] = useState<{ platform: string; message: string } | null>(null);
   const [postResults, setPostResults] = useState<PostResult[]>([]);
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Placeholder.configure({
@@ -55,9 +56,10 @@ const Content: React.FC = () => {
   const hasXAccount = !!xSession;
   const hasThreadsAccount = !!threadsSession;
   const isPostingDisabled = sessions.length === 0;
+  const text = editor?.getText();
 
   const handlePost = async () => {
-    if (postContent.length === 0) return;
+    if (editor?.isEmpty) return;
     setStatus("posting");
     setError(null);
     setPostResults([]);
@@ -68,7 +70,7 @@ const Content: React.FC = () => {
       const results = await Promise.allSettled([
         ...(hasXAccount && xUserId
           ? [
-            postToX(xUserId, postContent).then((url) => ({
+            postToX(xUserId, jsonToText(editor!.getJSON())).then((url) => ({
               platform: "X",
               url,
             })),
@@ -76,7 +78,7 @@ const Content: React.FC = () => {
           : []),
         ...(hasThreadsAccount && threadsUserId
           ? [
-            postToThreads(threadsUserId, postContent).then((url) => ({
+            postToThreads(threadsUserId, jsonToText(editor!.getJSON())).then((url) => ({
               platform: "Threads",
               url,
             })),
@@ -107,7 +109,7 @@ const Content: React.FC = () => {
         // If we have some successful posts, show partial success
         setStatus(successfulPosts.length > 0 ? "partial_success" : "error");
       } else {
-        setPostContent("");
+        editor?.commands.setContent("");
         setStatus("success");
       }
     } catch (error) {
@@ -120,15 +122,9 @@ const Content: React.FC = () => {
     }
   };
 
-
-
   const handleModalClose = () => {
     setStatus("idle");
   };
-
-  const text = editor?.getText();
-
-  console.log(editor?.getHTML());
 
   return (
     <>
@@ -146,17 +142,9 @@ const Content: React.FC = () => {
         <h2 className="text-md font-bold text-gray-500 dark:text-gray-400 mb-3">
           Create Post
         </h2>
-        <EditorContent editor={editor} />
-        {/* <textarea
-          value={postContent}
-          onChange={(e) => setPostContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="What's happening?"
-          disabled={isPostingDisabled}
-          className="w-full h-32 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-        /> */}
+        <EditorContent editor={editor} disabled={isPostingDisabled} />
         <div className="mt-4 space-y-3">
-          {postContent.length > 280 && showWarning && (
+          {text?.length && text.length > 280 && showWarning ? (
             <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg">
               <p className="text-sm">
                 Only the first 280 characters will be visible on the timeline.
@@ -168,9 +156,9 @@ const Content: React.FC = () => {
                 <CloseIcon />
               </button>
             </div>
-          )}
+          ) : null}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => {
                   if (editor) {
@@ -195,13 +183,13 @@ const Content: React.FC = () => {
               </button>
             </div>
             <div className="flex items-center gap-4">
-              {text?.length && text.length > 0 ? (
-                <CharacterCounter count={text.length} limit={280} />
+              {!editor?.isEmpty ? (
+                <CharacterCounter count={text?.trim().length || 0} limit={280} />
               ) : null}
               <button
                 disabled={
                   isPostingDisabled ||
-                  postContent.length === 0 ||
+                  editor?.isEmpty ||
                   status === "posting"
                 }
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
