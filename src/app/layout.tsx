@@ -32,7 +32,7 @@ const RootLayout = ({ children }: RootLayoutProps) => (
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
       >
-        <ThemeProvider attribute="class">
+        <ThemeProvider attribute="class" defaultTheme="light">
           <DynamicFavicon />
           <Header />
           {children}
