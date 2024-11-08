@@ -13,10 +13,13 @@ import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
 import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { useState } from "react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import Alert from "./Alert";
 import CharacterCounter from "./CharacterCounter";
 import ArrowDownIcon from "./icons/ArrowDown";
 import CloseIcon from "./icons/Close";
+import ImageIcon from "./icons/Image";
 import LoadingModal from "./LoadingModal";
 
 const CustomHardBreak = HardBreak.extend({
@@ -40,6 +43,9 @@ const Content: React.FC = () => {
   const [status, setStatus] = useState<PostStatus>("idle");
   const [error, setError] = useState<{ platform: string; message: string } | null>(null);
   const [postResults, setPostResults] = useState<PostResult[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [showAlert, setShowAlert] = useState(false);
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -63,6 +69,23 @@ const Content: React.FC = () => {
     }
   })
 
+  useEffect(() => {
+    return () => {
+      // Cleanup object URLs when component unmounts
+      imagePreviews.forEach(preview => {
+        URL.revokeObjectURL(preview);
+      });
+    };
+  }, [imagePreviews]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviews.length > 0) {
+        imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
+      }
+    };
+  }, [imagePreviews]);
+
   if (!signIn) return null;
 
   const sessions = client.activeSessions || [];
@@ -81,6 +104,18 @@ const Content: React.FC = () => {
   const hasThreadsAccount = !!threadsSession;
   const isPostingDisabled = sessions.length === 0;
   const text = editor?.getText();
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + imageFiles.length > 4) {
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
+    }
+    const newFiles = files.slice(0, 4 - imageFiles.length);
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    setImageFiles(prev => [...prev, ...newFiles]);
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+  };
 
   const handlePost = async () => {
     if (editor?.isEmpty) return;
@@ -133,7 +168,11 @@ const Content: React.FC = () => {
         // If we have some successful posts, show partial success
         setStatus(successfulPosts.length > 0 ? "partial_success" : "error");
       } else {
-        editor?.commands.setContent("");
+        if (editor) {
+          editor.commands.setContent("");
+        }
+        setImageFiles([]);
+        setImagePreviews([]);
         setStatus("success");
       }
     } catch (error) {
@@ -152,6 +191,7 @@ const Content: React.FC = () => {
 
   return (
     <>
+      {showAlert && <Alert message="Maximum 4 images allowed" />}
       <div className="relative bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
         {isPostingDisabled && (
           <div className="absolute inset-0 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10">
@@ -167,6 +207,33 @@ const Content: React.FC = () => {
           Create Post
         </h2>
         <EditorContent editor={editor} disabled={isPostingDisabled} />
+        {imagePreviews.length > 0 && (
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            {imagePreviews.map((preview, index) => (
+              <div key={preview} className="relative w-fit">
+                <Image
+                  src={preview}
+                  alt={`Upload preview ${index + 1}`}
+                  className="rounded-lg"
+                  width={300}
+                  height={300}
+                  style={{ maxHeight: '300px', height: "100%", width: 'auto', objectFit: "cover" }}
+                />
+                <button
+                  onClick={() => {
+                    setImageFiles(prev => prev.filter((_, i) => i !== index));
+                    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+                  }}
+                  className="absolute top-1 right-1 bg-gray-800/75 hover:bg-gray-800/90 text-white p-1.5 rounded-full shadow-lg transition-colors"
+                  title="Remove image"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="mt-4 mb-2 space-y-3">
           {text?.length && text.length > 280 && showWarning ? (
             <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg">
@@ -183,6 +250,25 @@ const Content: React.FC = () => {
           ) : null}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
+              <input
+                type="file"
+                accept="image/png, image/jpeg, image/webp, image/avif"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+                disabled={imageFiles.length >= 4}
+                multiple
+              />
+              <label
+                htmlFor="image-upload"
+                className={`${imageFiles.length >= 4
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'cursor-pointer hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800'
+                  } bg-transparent text-blue-500 dark:text-white p-[8px] rounded-full transition-colors`}
+              >
+                <ImageIcon />
+              </label>
+              <div className="w-[1px] h-6 bg-gray-200 dark:bg-gray-700 mx-2" />
               <button
                 onClick={() => {
                   if (editor) {
