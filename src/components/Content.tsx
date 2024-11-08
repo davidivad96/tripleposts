@@ -5,14 +5,33 @@ import { PostError } from "@/lib/errors";
 import { jsonToText } from "@/lib/utils";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
+import Bold from "@tiptap/extension-bold";
+import Document from '@tiptap/extension-document';
+import HardBreak from "@tiptap/extension-hard-break";
+import Italic from "@tiptap/extension-italic";
+import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
+import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { useState } from "react";
 import CharacterCounter from "./CharacterCounter";
 import ArrowDownIcon from "./icons/ArrowDown";
 import CloseIcon from "./icons/Close";
 import LoadingModal from "./LoadingModal";
+
+const CustomHardBreak = HardBreak.extend({
+  addKeyboardShortcuts() {
+    return {
+      "Mod-Enter": () => {
+        const postButton = document.querySelector('button[data-post-button]');
+        if (postButton instanceof HTMLButtonElement && !postButton.disabled) {
+          postButton.click();
+        }
+        return true;
+      }
+    }
+  },
+});
 
 const Content: React.FC = () => {
   const { signIn } = useSignIn();
@@ -24,7 +43,12 @@ const Content: React.FC = () => {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      Document,
+      Paragraph,
+      Text,
+      Bold,
+      Italic,
+      CustomHardBreak,
       Placeholder.configure({
         placeholder: "What's happening?!",
         emptyNodeClass:
@@ -143,7 +167,7 @@ const Content: React.FC = () => {
           Create Post
         </h2>
         <EditorContent editor={editor} disabled={isPostingDisabled} />
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 mb-2 space-y-3">
           {text?.length && text.length > 280 && showWarning ? (
             <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg">
               <p className="text-sm">
@@ -166,9 +190,11 @@ const Content: React.FC = () => {
                   }
                 }}
                 className={`${editor?.isActive('bold') ? 'bg-blue-500 dark:bg-white text-white dark:text-gray-800' : 'bg-transparent text-blue-500 dark:text-white'
-                  } font-bold py-[6px] px-[12px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800`}
+                  } font-bold py-[6px] px-[12px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800 group relative`}
+                title="Bold (⌘B)"
               >
                 B
+                <span className="hidden sm:block absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">⌘B</span>
               </button>
               <button
                 onClick={() => {
@@ -177,9 +203,11 @@ const Content: React.FC = () => {
                   }
                 }}
                 className={`${editor?.isActive('italic') ? 'bg-blue-500 dark:bg-white text-white dark:text-gray-800' : 'bg-transparent text-blue-500 dark:text-white'
-                  } italic py-[6px] px-[16px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800`}
+                  } italic py-[6px] px-[16px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800 group relative`}
+                title="Italic (⌘I)"
               >
                 I
+                <span className="hidden sm:block absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">⌘I</span>
               </button>
             </div>
             <div className="flex items-center gap-4">
@@ -192,10 +220,13 @@ const Content: React.FC = () => {
                   editor?.isEmpty ||
                   status === "posting"
                 }
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center group relative"
                 onClick={handlePost}
+                data-post-button
+                title="Post (⌘↵)"
               >
                 Post
+                <span className="hidden sm:block absolute bottom-[-20px] right-1/2 transform translate-x-1/2 text-[10px] text-gray-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">⌘↵</span>
               </button>
             </div>
           </div>
