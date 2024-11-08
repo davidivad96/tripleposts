@@ -43,8 +43,7 @@ const Content: React.FC = () => {
   const [status, setStatus] = useState<PostStatus>("idle");
   const [error, setError] = useState<{ platform: string; message: string } | null>(null);
   const [postResults, setPostResults] = useState<PostResult[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [showAlert, setShowAlert] = useState(false);
   const editor = useEditor({
     immediatelyRender: false,
@@ -72,19 +71,11 @@ const Content: React.FC = () => {
   useEffect(() => {
     return () => {
       // Cleanup object URLs when component unmounts
-      imagePreviews.forEach(preview => {
-        URL.revokeObjectURL(preview);
+      images.forEach(image => {
+        URL.revokeObjectURL(image.preview);
       });
     };
-  }, [imagePreviews]);
-
-  useEffect(() => {
-    return () => {
-      if (imagePreviews.length > 0) {
-        imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
-      }
-    };
-  }, [imagePreviews]);
+  }, [images]);
 
   if (!signIn) return null;
 
@@ -107,14 +98,13 @@ const Content: React.FC = () => {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + imageFiles.length > 4) {
+    if (files.length + images.length > 4) {
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
     }
-    const newFiles = files.slice(0, 4 - imageFiles.length);
+    const newFiles = files.slice(0, 4 - images.length);
     const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-    setImageFiles(prev => [...prev, ...newFiles]);
-    setImagePreviews(prev => [...prev, ...newPreviews]);
+    setImages(prev => [...prev, ...newFiles.map((file, index) => ({ file, preview: newPreviews[index] }))]);
   };
 
   const handlePost = async () => {
@@ -171,8 +161,7 @@ const Content: React.FC = () => {
         if (editor) {
           editor.commands.setContent("");
         }
-        setImageFiles([]);
-        setImagePreviews([]);
+        setImages([]);
         setStatus("success");
       }
     } catch (error) {
@@ -207,12 +196,12 @@ const Content: React.FC = () => {
           Create Post
         </h2>
         <EditorContent editor={editor} disabled={isPostingDisabled} />
-        {imagePreviews.length > 0 && (
+        {images.length > 0 && (
           <div className="mt-4 grid grid-cols-4 gap-2">
-            {imagePreviews.map((preview, index) => (
-              <div key={preview} className="relative w-fit">
+            {images.map((image, index) => (
+              <div key={image.preview} className="relative w-fit">
                 <Image
-                  src={preview}
+                  src={image.preview}
                   alt={`Upload preview ${index + 1}`}
                   className="rounded-lg"
                   width={300}
@@ -221,8 +210,7 @@ const Content: React.FC = () => {
                 />
                 <button
                   onClick={() => {
-                    setImageFiles(prev => prev.filter((_, i) => i !== index));
-                    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+                    setImages(prev => prev.filter((_, i) => i !== index));
                   }}
                   className="absolute top-1 right-1 bg-gray-800/75 hover:bg-gray-800/90 text-white p-1.5 rounded-full shadow-lg transition-colors"
                   title="Remove image"
@@ -256,12 +244,12 @@ const Content: React.FC = () => {
                 onChange={handleImageUpload}
                 className="hidden"
                 id="image-upload"
-                disabled={imageFiles.length >= 4}
+                disabled={images.length >= 4}
                 multiple
               />
               <label
                 htmlFor="image-upload"
-                className={`${imageFiles.length >= 4
+                className={`${images.length >= 4
                   ? 'opacity-50 cursor-not-allowed'
                   : 'cursor-pointer hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800'
                   } bg-transparent text-blue-500 dark:text-white p-[8px] rounded-full transition-colors`}
