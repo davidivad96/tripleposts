@@ -1,11 +1,17 @@
 "use client";
 
 import { postToThreads, postToX } from "@/app/actions";
-import { useEditorConfig } from "@/hooks/useEditorConfig";
 import { PostError } from "@/lib/errors";
 import { jsonToText } from "@/lib/utils";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
+import Bold from "@tiptap/extension-bold";
+import Document from "@tiptap/extension-document";
+import HardBreak from "@tiptap/extension-hard-break";
+import Italic from "@tiptap/extension-italic";
+import Paragraph from "@tiptap/extension-paragraph";
+import Placeholder from "@tiptap/extension-placeholder";
+import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useState } from "react";
 import Alert from "./Alert";
@@ -27,7 +33,38 @@ const Content: React.FC = () => {
   const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const editor = useEditor(useEditorConfig());
+  const editor = useEditor({
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      Bold,
+      Italic,
+      HardBreak.extend({
+        addKeyboardShortcuts: () => ({
+          "Mod-Enter": () => {
+            const postButton = document.querySelector("button[data-post-button]");
+            if (postButton instanceof HTMLButtonElement && !postButton.disabled) {
+              postButton.click();
+            }
+            return true;
+          },
+        }),
+      }),
+      Placeholder.configure({
+        placeholder: "What's happening?!",
+        emptyNodeClass:
+          "first:before:text-gray-400 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0 first:before:opacity-50",
+      }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class:
+          "prose dark:prose-invert outline-none focus:ring-0 p-4 rounded-lg bg-gray-100 dark:bg-gray-900 min-h-[90px] max-h-[200px] overflow-y-scroll focus-within:border focus-within:border-blue-500 dark:focus-within:border-blue-500",
+      },
+    },
+  });
 
   if (!signIn) return null;
 
