@@ -61,8 +61,8 @@ const EditImageModal: React.FC<EditImageModalProps> = ({
     const scaleX = img.naturalWidth / img.width;
     const scaleY = img.naturalHeight / img.height;
 
-    canvas.width = crop.width;
-    canvas.height = crop.height;
+    canvas.width = crop.width * scaleX;
+    canvas.height = crop.height * scaleY;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -75,14 +75,15 @@ const EditImageModal: React.FC<EditImageModalProps> = ({
       crop.height * scaleY,
       0,
       0,
-      crop.width,
-      crop.height,
+      canvas.width,
+      canvas.height,
     );
 
+    const mimeType = editedImage.file.type || 'image/jpeg';
     canvas.toBlob(async (blob) => {
       if (!blob) return;
       let file = new File([blob], editedImage.file.name, {
-        type: 'image/jpeg',
+        type: mimeType,
         lastModified: Date.now(),
       });
 
