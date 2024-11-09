@@ -1,3 +1,4 @@
+import { resizeImage } from "@/lib/imageUtils";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
@@ -50,7 +51,7 @@ const EditImageModal: React.FC<EditImageModalProps> = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!completedCrop || !canvasRef.current || !imgRef.current || !editedImage) return;
 
     const canvas = canvasRef.current;
@@ -78,15 +79,19 @@ const EditImageModal: React.FC<EditImageModalProps> = ({
       crop.height,
     );
 
-    canvas.toBlob((blob) => {
+    canvas.toBlob(async (blob) => {
       if (!blob) return;
-      const file = new File([blob], editedImage.file.name, {
+      let file = new File([blob], editedImage.file.name, {
         type: 'image/jpeg',
         lastModified: Date.now(),
       });
+
+      // Resize if file is too large
+      file = await resizeImage(file);
+
       onSave({
         file,
-        preview: URL.createObjectURL(blob),
+        preview: URL.createObjectURL(file),
       });
       setCrop(DEFAULT_CROP);
       setCompletedCrop(undefined);

@@ -2,6 +2,7 @@
 
 import { postToThreads, postToX } from "@/app/actions";
 import { PostError } from "@/lib/errors";
+import { resizeImage } from "@/lib/imageUtils";
 import { jsonToText } from "@/lib/utils";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
@@ -87,15 +88,26 @@ const Content: React.FC = () => {
   const isPostingDisabled = sessions.length === 0;
   const text = editor?.getText();
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + images.length > 4) {
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
     }
     const newFiles = files.slice(0, 4 - images.length);
-    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-    setImages(prev => [...prev, ...newFiles.map((file, index) => ({ file, preview: newPreviews[index] }))]);
+
+    // Resize images and create previews
+    const processedImages = await Promise.all(
+      newFiles.map(async (file) => {
+        const resizedFile = await resizeImage(file);
+        return {
+          file: resizedFile,
+          preview: URL.createObjectURL(resizedFile)
+        };
+      })
+    );
+
+    setImages(prev => [...prev, ...processedImages]);
   };
 
   const handlePost = async () => {
