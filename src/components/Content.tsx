@@ -122,7 +122,7 @@ const Content: React.FC = () => {
       const results = await Promise.allSettled([
         ...(hasXAccount && xUserId
           ? [
-            postToX(xUserId, jsonToText(editor!.getJSON())).then((url) => ({
+            postToX(xUserId, jsonToText(editor!.getJSON()), images.map(({ file }) => file)).then((url) => ({
               platform: "X",
               url,
             })),

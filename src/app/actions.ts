@@ -4,7 +4,11 @@ import { PostError } from "@/lib/errors";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TwitterApi } from "twitter-api-v2";
 
-export const postToX = async (userId: string, content: string) => {
+export const postToX = async (
+  userId: string,
+  content: string,
+  images: File[]
+) => {
   console.log("Posting to X:", content);
   try {
     const clerk = await clerkClient();
@@ -24,9 +28,33 @@ export const postToX = async (userId: string, content: string) => {
       throw new PostError("X access token not found", "X");
     }
 
-    const twitter = new TwitterApi("mipae");
+    // OAuth 1.0a (User context)
+    const userClient = new TwitterApi({
+      appKey: process.env.X_OAUTH_CONSUMER_API_KEY!,
+      appSecret: process.env.X_OAUTH_CONSUMER_SECRET!,
+      accessToken: process.env.X_OAUTH_ACCESS_TOKEN!,
+      accessSecret: process.env.X_OAUTH_ACCESS_TOKEN_SECRET!,
+    });
+    // OAuth2 (app-only or user context)
+    const appOnlyClient = new TwitterApi(accessToken);
 
-    const { data, errors } = await twitter.v2.tweet(content);
+    const mediaIds = await Promise.all(
+      images.map(async (image) =>
+        userClient.v1.uploadMedia(Buffer.from(await image.arrayBuffer()), {
+          mimeType: image.type,
+        })
+      )
+    );
+
+    const { data, errors } = await appOnlyClient.v2.tweet(content, {
+      media: {
+        media_ids: mediaIds as
+          | [string]
+          | [string, string]
+          | [string, string, string]
+          | [string, string, string, string],
+      },
+    });
 
     if (errors) {
       console.error(errors);
