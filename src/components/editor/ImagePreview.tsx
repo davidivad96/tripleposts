@@ -21,7 +21,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ images, onRemoveImage, onEd
             className="rounded-lg cursor-pointer"
             width={300}
             height={300}
-            style={{ maxHeight: '300px', height: "100%", width: 'auto', objectFit: "cover" }}
+            style={{ maxHeight: '300px', height: "100%", objectFit: "cover" }}
             onClick={() => onEditImage(index)}
           />
           <div className="absolute top-1 right-1 flex gap-1">
