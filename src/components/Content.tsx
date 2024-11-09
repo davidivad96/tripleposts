@@ -8,6 +8,7 @@ import { useClerk, useSignIn } from "@clerk/nextjs";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import HardBreak from "@tiptap/extension-hard-break";
+import History from "@tiptap/extension-history";
 import Italic from "@tiptap/extension-italic";
 import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -56,6 +57,7 @@ const Content: React.FC = () => {
         emptyNodeClass:
           "first:before:text-gray-400 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0 first:before:opacity-50",
       }),
+      History.configure({ depth: 10 }),
     ],
     content: "",
     editorProps: {
