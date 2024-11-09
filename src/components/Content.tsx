@@ -1,40 +1,20 @@
 "use client";
 
 import { postToThreads, postToX } from "@/app/actions";
+import { useEditorConfig } from "@/hooks/useEditorConfig";
 import { PostError } from "@/lib/errors";
 import { jsonToText } from "@/lib/utils";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
-import Bold from "@tiptap/extension-bold";
-import Document from '@tiptap/extension-document';
-import HardBreak from "@tiptap/extension-hard-break";
-import Italic from "@tiptap/extension-italic";
-import Paragraph from "@tiptap/extension-paragraph";
-import Placeholder from "@tiptap/extension-placeholder";
-import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import Alert from "./Alert";
 import CharacterCounter from "./CharacterCounter";
+import EditorToolbar from "./editor/EditorToolbar";
+import ImagePreview from "./editor/ImagePreview";
+import WarningBanner from "./editor/WarningBanner";
 import ArrowDownIcon from "./icons/ArrowDown";
-import CloseIcon from "./icons/Close";
-import ImageIcon from "./icons/Image";
 import LoadingModal from "./LoadingModal";
-
-const CustomHardBreak = HardBreak.extend({
-  addKeyboardShortcuts() {
-    return {
-      "Mod-Enter": () => {
-        const postButton = document.querySelector('button[data-post-button]');
-        if (postButton instanceof HTMLButtonElement && !postButton.disabled) {
-          postButton.click();
-        }
-        return true;
-      }
-    }
-  },
-});
 
 const Content: React.FC = () => {
   const { signIn } = useSignIn();
@@ -45,28 +25,7 @@ const Content: React.FC = () => {
   const [postResults, setPostResults] = useState<PostResult[]>([]);
   const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [showAlert, setShowAlert] = useState(false);
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      Document,
-      Paragraph,
-      Text,
-      Bold,
-      Italic,
-      CustomHardBreak,
-      Placeholder.configure({
-        placeholder: "What's happening?!",
-        emptyNodeClass:
-          'first:before:text-gray-400 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0 first:before:opacity-50',
-      })
-    ],
-    content: '',
-    editorProps: {
-      attributes: {
-        class: "prose dark:prose-invert outline-none focus:ring-0 p-4 rounded-lg bg-gray-100 dark:bg-gray-900 min-h-[90px] max-h-[200px] overflow-y-scroll focus-within:border focus-within:border-blue-500 dark:focus-within:border-blue-500",
-      }
-    }
-  })
+  const editor = useEditor(useEditorConfig());
 
   useEffect(() => {
     return () => {
@@ -196,104 +155,29 @@ const Content: React.FC = () => {
           Create Post
         </h2>
         <EditorContent editor={editor} disabled={isPostingDisabled} />
-        {images.length > 0 && (
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {images.map((image, index) => (
-              <div key={image.preview} className="relative w-fit">
-                <Image
-                  src={image.preview}
-                  alt={`Upload preview ${index + 1}`}
-                  className="rounded-lg"
-                  width={300}
-                  height={300}
-                  style={{ maxHeight: '300px', height: "100%", width: 'auto', objectFit: "cover" }}
-                />
-                <button
-                  onClick={() => {
-                    setImages(prev => prev.filter((_, i) => i !== index));
-                  }}
-                  className="absolute top-1 right-1 bg-gray-800/75 hover:bg-gray-800/90 text-white p-1.5 rounded-full shadow-lg transition-colors"
-                  title="Remove image"
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
+        <ImagePreview
+          images={images}
+          onRemoveImage={(index) => {
+            setImages(prev => prev.filter((_, i) => i !== index));
+          }}
+        />
         <div className="mt-4 mb-2 space-y-3">
-          {text?.length && text.length > 280 && showWarning ? (
-            <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg">
-              <p className="text-sm">
-                Only the first 280 characters will be visible on the timeline.
-              </p>
-              <button
-                onClick={() => setShowWarning(false)}
-                className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
-              >
-                <CloseIcon />
-              </button>
-            </div>
-          ) : null}
+          <WarningBanner
+            show={!!text?.length && text.length > 280 && showWarning}
+            onClose={() => setShowWarning(false)}
+          />
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <input
-                type="file"
-                accept="image/png, image/jpeg, image/webp, image/avif"
-                onChange={handleImageUpload}
-                className="hidden"
-                id="image-upload"
-                disabled={images.length >= 4}
-                multiple
-              />
-              <label
-                htmlFor="image-upload"
-                className={`${images.length >= 4
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'cursor-pointer hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800'
-                  } bg-transparent text-blue-500 dark:text-white p-[8px] rounded-full transition-colors`}
-              >
-                <ImageIcon />
-              </label>
-              <div className="w-[1px] h-6 bg-gray-200 dark:bg-gray-700 mx-2" />
-              <button
-                onClick={() => {
-                  if (editor) {
-                    editor.chain().focus().toggleBold().run();
-                  }
-                }}
-                className={`${editor?.isActive('bold') ? 'bg-blue-500 dark:bg-white text-white dark:text-gray-800' : 'bg-transparent text-blue-500 dark:text-white'
-                  } font-bold py-[6px] px-[12px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800 group relative`}
-                title="Bold (⌘B)"
-              >
-                B
-                <span className="hidden sm:block absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">⌘B</span>
-              </button>
-              <button
-                onClick={() => {
-                  if (editor) {
-                    editor.chain().focus().toggleItalic().run();
-                  }
-                }}
-                className={`${editor?.isActive('italic') ? 'bg-blue-500 dark:bg-white text-white dark:text-gray-800' : 'bg-transparent text-blue-500 dark:text-white'
-                  } italic py-[6px] px-[16px] rounded-full transition-colors hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800 group relative`}
-                title="Italic (⌘I)"
-              >
-                I
-                <span className="hidden sm:block absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">⌘I</span>
-              </button>
-            </div>
+            <EditorToolbar
+              editor={editor}
+              onImageUpload={handleImageUpload}
+              imagesCount={images.length}
+            />
             <div className="flex items-center gap-4">
-              {!editor?.isEmpty ? (
+              {!editor?.isEmpty && (
                 <CharacterCounter count={text?.trim().length || 0} limit={280} />
-              ) : null}
+              )}
               <button
-                disabled={
-                  isPostingDisabled ||
-                  editor?.isEmpty ||
-                  status === "posting"
-                }
+                disabled={isPostingDisabled || editor?.isEmpty || status === "posting"}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center group relative"
                 onClick={handlePost}
                 data-post-button
@@ -308,12 +192,10 @@ const Content: React.FC = () => {
       </div>
       <LoadingModal
         isOpen={status !== "idle"}
-        platforms={
-          [
-            ...(hasXAccount ? ["X"] : []),
-            ...(hasThreadsAccount ? ["Threads"] : []),
-          ] as ("X" | "Threads")[]
-        }
+        platforms={[
+          ...(hasXAccount ? ["X"] : []),
+          ...(hasThreadsAccount ? ["Threads"] : []),
+        ] as ("X" | "Threads")[]}
         status={status}
         error={error}
         onClose={handleModalClose}
