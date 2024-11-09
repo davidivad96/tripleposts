@@ -2,6 +2,7 @@
 
 import { PostError } from "@/lib/errors";
 import { clerkClient } from "@clerk/nextjs/server";
+import { TwitterApi } from "twitter-api-v2";
 
 export const postToX = async (userId: string, content: string) => {
   console.log("Posting to X:", content);
@@ -23,25 +24,15 @@ export const postToX = async (userId: string, content: string) => {
       throw new PostError("X access token not found", "X");
     }
 
-    const res = await fetch("https://api.twitter.com/2/tweets", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text: content }),
-    });
+    const twitter = new TwitterApi("mipae");
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new PostError(
-        error.message || "Failed to post to X",
-        "X",
-        res.status
-      );
+    const { data, errors } = await twitter.v2.tweet(content);
+
+    if (errors) {
+      console.error(errors);
+      throw new PostError(errors[0].title || "Failed to post to X", "X");
     }
 
-    const { data } = (await res.json()) as { data: { id: string } };
     return `https://x.com/${username}/status/${data.id}`;
   } catch (error) {
     if (error instanceof PostError) throw error;

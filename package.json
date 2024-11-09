@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev --turbopack\" \"lt --port 3000 --subdomain yellowtruck\"",
+    "dev": "concurrently \"next dev\" \"lt --port 3000 --subdomain yellowtruck\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -25,7 +25,8 @@
     "react": "19.0.0-rc-02c0e824-20241028",
     "react-canvas-confetti": "^2.0.7",
     "react-dom": "19.0.0-rc-02c0e824-20241028",
-    "react-image-crop": "^11.0.7"
+    "react-image-crop": "^11.0.7",
+    "twitter-api-v2": "^1.18.1"
   },
   "devDependencies": {
     "@clerk/types": "^4.29.0",

@@ -59,6 +59,9 @@ importers:
       react-image-crop:
         specifier: ^11.0.7
         version: 11.0.7(react@19.0.0-rc-02c0e824-20241028)
+      twitter-api-v2:
+        specifier: ^1.18.1
+        version: 1.18.1
     devDependencies:
       '@clerk/types':
         specifier: ^4.29.0
@@ -1926,6 +1929,9 @@ packages:
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
+  twitter-api-v2@1.18.1:
+    resolution: {integrity: sha512-6pChAlfH/7VakKnPfVdG2fjxVJJgKCXvvWhuEOCdJ52Y+rzmAmsnTKDgjhnj11XgboSYQx1bn3j2VWyR+vnRiA==}
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -4138,6 +4144,8 @@ snapshots:
   tslib@2.4.1: {}
 
   tslib@2.8.1: {}
+
+  twitter-api-v2@1.18.1: {}
 
   type-check@0.4.0:
     dependencies:
