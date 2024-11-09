@@ -7,9 +7,10 @@ import { jsonToText } from "@/lib/utils";
 import { PostResult, PostStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Alert from "./Alert";
 import CharacterCounter from "./CharacterCounter";
+import EditImageModal from "./editor/EditImageModal";
 import EditorToolbar from "./editor/EditorToolbar";
 import ImagePreview from "./editor/ImagePreview";
 import WarningBanner from "./editor/WarningBanner";
@@ -25,16 +26,8 @@ const Content: React.FC = () => {
   const [postResults, setPostResults] = useState<PostResult[]>([]);
   const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [showAlert, setShowAlert] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const editor = useEditor(useEditorConfig());
-
-  useEffect(() => {
-    return () => {
-      // Cleanup object URLs when component unmounts
-      images.forEach(image => {
-        URL.revokeObjectURL(image.preview);
-      });
-    };
-  }, [images]);
 
   if (!signIn) return null;
 
@@ -137,6 +130,22 @@ const Content: React.FC = () => {
     setStatus("idle");
   };
 
+  const handleRemoveImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditImage = (index: number) => {
+    setSelectedImageIndex(index);
+  };
+
+  const handleSaveEditedImage = (editedImage: { file: File; preview: string }) => {
+    if (selectedImageIndex === null) return;
+    setImages(prev => prev.map((img, i) =>
+      i === selectedImageIndex ? editedImage : img
+    ));
+    setSelectedImageIndex(null);
+  };
+
   return (
     <>
       {showAlert && <Alert message="Maximum 4 images allowed" />}
@@ -157,9 +166,8 @@ const Content: React.FC = () => {
         <EditorContent editor={editor} disabled={isPostingDisabled} />
         <ImagePreview
           images={images}
-          onRemoveImage={(index) => {
-            setImages(prev => prev.filter((_, i) => i !== index));
-          }}
+          onRemoveImage={handleRemoveImage}
+          onEditImage={handleEditImage}
         />
         <div className="mt-4 mb-2 space-y-3">
           <WarningBanner
@@ -200,6 +208,12 @@ const Content: React.FC = () => {
         error={error}
         onClose={handleModalClose}
         results={postResults}
+      />
+      <EditImageModal
+        isOpen={selectedImageIndex !== null}
+        image={selectedImageIndex !== null ? images[selectedImageIndex] : null}
+        onClose={() => setSelectedImageIndex(null)}
+        onSave={handleSaveEditedImage}
       />
     </>
   );
