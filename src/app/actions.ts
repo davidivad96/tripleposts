@@ -47,13 +47,15 @@ export const postToX = async (
     );
 
     const { data, errors } = await appOnlyClient.v2.tweet(content, {
-      media: {
-        media_ids: mediaIds as
-          | [string]
-          | [string, string]
-          | [string, string, string]
-          | [string, string, string, string],
-      },
+      ...(mediaIds.length > 0 && {
+        media: {
+          media_ids: mediaIds as
+            | [string]
+            | [string, string]
+            | [string, string, string]
+            | [string, string, string, string],
+        },
+      }),
     });
 
     if (errors) {
