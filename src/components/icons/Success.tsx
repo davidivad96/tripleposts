@@ -1,7 +1,7 @@
 const SuccessIcon = () => (
-  <div className="text-green-500 w-20 h-20 flex items-center justify-center">
+  <div className="text-green-500 w-6 h-6 flex items-center justify-center">
     <svg
-      className="w-16 h-16"
+      className="w-6 h-6"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

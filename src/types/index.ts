@@ -1,11 +1,13 @@
 export type PostStatus =
   | "idle"
-  | "posting"
+  | "loading"
   | "success"
   | "partial_success"
   | "error";
 
-export type PostResult = {
+export type PlatformStatus = {
   platform: "X" | "Threads";
-  url: string;
+  status: PostStatus;
+  url?: string;
+  error?: string;
 };

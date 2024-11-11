@@ -1,6 +1,6 @@
 const LoadingIcon = () => (
   <svg
-    className="w-20 h-20 animate-spin text-blue-500"
+    className="w-6 h-6 animate-spin text-blue-500"
     viewBox="0 0 24 24"
     fill="none"
   >

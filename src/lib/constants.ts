@@ -263,7 +263,7 @@ export const CHARACTERS = {
     bold_and_italic: "𝙕",
   },
 
-  // Special characters with diacritics
+  // Characters with diacritics
   á: {
     bold: "𝐚́",
     italic: "𝘢́",

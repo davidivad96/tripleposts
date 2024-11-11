@@ -4,7 +4,7 @@ import { postToThreads, postToX } from "@/app/actions";
 import { PostError } from "@/lib/errors";
 import { resizeImage } from "@/lib/imageUtils";
 import { jsonToText } from "@/lib/utils";
-import { PostResult, PostStatus } from "@/types";
+import { PlatformStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
@@ -29,12 +29,10 @@ const Content: React.FC = () => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
   const [showWarning, setShowWarning] = useState(true);
-  const [status, setStatus] = useState<PostStatus>("idle");
-  const [error, setError] = useState<{ platform: string; message: string } | null>(null);
-  const [postResults, setPostResults] = useState<PostResult[]>([]);
   const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [platformStatuses, setPlatformStatuses] = useState<PlatformStatus[]>([]);
   const editor = useEditor({
     extensions: [
       Document,
@@ -112,73 +110,62 @@ const Content: React.FC = () => {
 
   const handlePost = async () => {
     if (editor?.isEmpty) return;
-    setStatus("posting");
-    setError(null);
-    setPostResults([]);
+
+    // Initialize platform statuses
+    const initialStatuses = [
+      ...(hasXAccount ? [{ platform: "X", status: "loading" }] : []),
+      ...(hasThreadsAccount ? [{ platform: "Threads", status: "loading" }] : []),
+    ] as PlatformStatus[];
+    setPlatformStatuses(initialStatuses);
 
     try {
       const xUserId = xSession?.user?.id;
       const threadsUserId = threadsSession?.user?.id;
-      const results = await Promise.allSettled([
-        ...(hasXAccount && xUserId
-          ? [
-            postToX(xUserId, jsonToText(editor!.getJSON()), images.map(({ file }) => file)).then((url) => ({
-              platform: "X",
-              url,
-            })),
-          ]
-          : []),
-        ...(hasThreadsAccount && threadsUserId
-          ? [
-            postToThreads(threadsUserId, jsonToText(editor!.getJSON())).then((url) => ({
-              platform: "Threads",
-              url,
-            })),
-          ]
-          : []),
-      ]);
 
-      const successfulPosts = results
-        .filter((result): result is PromiseFulfilledResult<PostResult> =>
-          result.status === "fulfilled"
-        )
-        .map((result) => result.value);
-
-      const failedPosts = results
-        .filter((result): result is PromiseRejectedResult =>
-          result.status === "rejected"
-        )
-        .map((result) => result.reason);
-
-      setPostResults(successfulPosts);
-
-      if (failedPosts.length > 0) {
-        const firstError = failedPosts[0] as PostError;
-        setError({
-          platform: firstError.platform,
-          message: firstError.message,
-        });
-        // If we have some successful posts, show partial success
-        setStatus(successfulPosts.length > 0 ? "partial_success" : "error");
-      } else {
-        if (editor) {
-          editor.commands.setContent("");
-        }
-        setImages([]);
-        setStatus("success");
+      const promises: Promise<void>[] = [];
+      // Post to each platform independently
+      if (hasXAccount && xUserId) {
+        promises.push(postToX(xUserId, jsonToText(editor!.getJSON()), images.map(({ file }) => file))
+          .then((url) => {
+            setPlatformStatuses(prev => prev.map(ps =>
+              ps.platform === "X" ? { ...ps, status: "success", url } : ps
+            ));
+          })
+          .catch((error: PostError) => {
+            setPlatformStatuses(prev => prev.map(ps =>
+              ps.platform === "X" ? { ...ps, status: "error", error: error.message } : ps
+            ));
+          }));
       }
+
+      if (hasThreadsAccount && threadsUserId) {
+        promises.push(postToThreads(threadsUserId, jsonToText(editor!.getJSON()))
+          .then((url) => {
+            setPlatformStatuses(prev => prev.map(ps =>
+              ps.platform === "Threads" ? { ...ps, status: "success", url } : ps
+            ));
+          })
+          .catch((error: PostError) => {
+            setPlatformStatuses(prev => prev.map(ps =>
+              ps.platform === "Threads" ? { ...ps, status: "error", error: error.message } : ps
+            ));
+          }));
+      }
+
+      // Clear content when all posts are successful
+      await Promise.all(promises);
+      if (editor) {
+        editor.commands.setContent("");
+      }
+      setImages([]);
     } catch (error) {
       console.error("Error posting:", error);
-      setError({
-        platform: "unknown",
-        message: "An unexpected error occurred",
-      });
-      setStatus("error");
+      setPlatformStatuses(prev => prev.map(ps => ({
+        ...ps,
+        status: "error",
+        error: "An unexpected error occurred"
+      })));
     }
-  };
-
-  const handleModalClose = () => {
-    setStatus("idle");
   };
 
   const handleRemoveImage = (index: number) => {
@@ -236,7 +223,7 @@ const Content: React.FC = () => {
                 <CharacterCounter count={text?.trim().length || 0} limit={280} />
               )}
               <button
-                disabled={isPostingDisabled || editor?.isEmpty || status === "posting"}
+                disabled={isPostingDisabled || editor?.isEmpty || platformStatuses.some(ps => ps.status === "loading")}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center group relative"
                 onClick={handlePost}
                 data-post-button
@@ -250,15 +237,9 @@ const Content: React.FC = () => {
         </div>
       </div>
       <LoadingModal
-        isOpen={status !== "idle"}
-        platforms={[
-          ...(hasXAccount ? ["X"] : []),
-          ...(hasThreadsAccount ? ["Threads"] : []),
-        ] as ("X" | "Threads")[]}
-        status={status}
-        error={error}
-        onClose={handleModalClose}
-        results={postResults}
+        isOpen={platformStatuses.length > 0}
+        platformStatuses={platformStatuses}
+        onClose={() => setPlatformStatuses([])}
       />
       <EditImageModal
         isOpen={selectedImageIndex !== null}

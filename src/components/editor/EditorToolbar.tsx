@@ -15,7 +15,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
   <div className="flex items-center gap-1">
     <input
       type="file"
-      accept="image/png, image/jpeg, image/webp, image/avif"
+      accept="image/png, image/jpeg, image/webp, image/avif, image/gif"
       onChange={onImageUpload}
       className="hidden"
       id="image-upload"
