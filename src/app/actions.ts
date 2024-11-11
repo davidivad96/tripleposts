@@ -75,6 +75,10 @@ export const postToX = async (
 
 export const postToThreads = async (userId: string, content: string) => {
   console.log("Posting to Threads:", content);
+  const URLS = [
+    "https://images.unsplash.com/photo-1529778873920-4da4926a72c2?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y3V0ZSUyMGNhdHxlbnwwfHwwfHx8MA%3D%3D",
+    "https://images.pexels.com/photos/4587959/pexels-photo-4587959.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+  ];
   try {
     const clerk = await clerkClient();
     const userResponse = await clerk.users.getUser(userId);
@@ -97,24 +101,52 @@ export const postToThreads = async (userId: string, content: string) => {
       throw new PostError("Threads access token not found", "Threads");
     }
 
+    let creationId: string | null = null;
+
     // Create the post
-    const res1 = await fetch(
-      `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=TEXT&text=${encodeURIComponent(
-        content
-      )}&access_token=${accessToken}`,
-      { method: "POST" }
-    );
-
-    if (!res1.ok) {
-      const error = await res1.json();
-      throw new PostError(
-        error.message || "Failed to create Threads post",
-        "Threads",
-        res1.status
+    const MEDIA_TYPE =
+      URLS.length === 0 ? "TEXT" : URLS.length === 1 ? "IMAGE" : "CAROUSEL";
+    if (MEDIA_TYPE === "CAROUSEL") {
+      // Create the carousel items
+      const mediaIds = await Promise.all(
+        URLS.map(async (url) => {
+          const res = await fetch(
+            `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=IMAGE&image_url=${url}&is_carousel_item=true&access_token=${accessToken}`,
+            { method: "POST" }
+          );
+          const { id } = (await res.json()) as { id: string };
+          return id;
+        })
       );
-    }
+      // Create the carousel
+      const res = await fetch(
+        `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=CAROUSEL&children=${mediaIds.join(
+          ","
+        )}&text=${encodeURIComponent(content)}&access_token=${accessToken}`,
+        { method: "POST" }
+      );
+      creationId = ((await res.json()) as { id: string }).id;
+    } else {
+      const res1 = await fetch(
+        `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=${MEDIA_TYPE}&text=${encodeURIComponent(
+          content
+        )}&${
+          MEDIA_TYPE === "IMAGE" ? `image_url=${URLS[0]}` : ""
+        }&access_token=${accessToken}`,
+        { method: "POST" }
+      );
 
-    const { id: creationId } = (await res1.json()) as { id: string };
+      if (!res1.ok) {
+        const error = await res1.json();
+        throw new PostError(
+          error.message || "Failed to create Threads post",
+          "Threads",
+          res1.status
+        );
+      }
+
+      creationId = ((await res1.json()) as { id: string }).id;
+    }
 
     // Publish the post
     const res2 = await fetch(
