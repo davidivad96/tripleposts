@@ -1,6 +1,7 @@
 "use server";
 
 import { PostError } from "@/lib/errors";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TwitterApi } from "twitter-api-v2";
 
@@ -38,6 +39,7 @@ export const postToX = async (
     // OAuth2 (app-only or user context)
     const appOnlyClient = new TwitterApi(accessToken);
 
+    // Upload images to X
     const mediaIds = await Promise.all(
       images.map(async (image) =>
         userClient.v1.uploadMedia(Buffer.from(await image.arrayBuffer()), {
@@ -46,6 +48,7 @@ export const postToX = async (
       )
     );
 
+    // Post to X
     const { data, errors } = await appOnlyClient.v2.tweet(content, {
       ...(mediaIds.length > 0 && {
         media: {
@@ -59,7 +62,6 @@ export const postToX = async (
     });
 
     if (errors) {
-      console.error(errors);
       throw new PostError(errors[0].title || "Failed to post to X", "X");
     }
 
@@ -73,12 +75,35 @@ export const postToX = async (
   }
 };
 
-export const postToThreads = async (userId: string, content: string) => {
+export const postToThreads = async (
+  userId: string,
+  content: string,
+  images: File[]
+) => {
   console.log("Posting to Threads:", content);
-  const URLS = [
-    "https://images.unsplash.com/photo-1529778873920-4da4926a72c2?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y3V0ZSUyMGNhdHxlbnwwfHwwfHx8MA%3D%3D",
-    "https://images.pexels.com/photos/4587959/pexels-photo-4587959.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
-  ];
+  const S3 = new S3Client({
+    region: "auto",
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY!,
+      secretAccessKey: process.env.R2_SECRET_KEY!,
+    },
+  });
+  // Upload images to R2
+  const URLS = await Promise.all(
+    images.map(async (image) => {
+      const Key = `${userId}/${Date.now()}-${image.name}`;
+      await S3.send(
+        new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME!,
+          Key,
+          Body: Buffer.from(await image.arrayBuffer()),
+        })
+      );
+      return `${process.env.R2_BUCKET_PUBLIC_URL}/${Key}`;
+    })
+  );
+
   try {
     const clerk = await clerkClient();
     const userResponse = await clerk.users.getUser(userId);

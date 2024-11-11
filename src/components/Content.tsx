@@ -123,9 +123,11 @@ const Content: React.FC = () => {
       const threadsUserId = threadsSession?.user?.id;
 
       const promises: Promise<void>[] = [];
+      const content = jsonToText(editor!.getJSON());
+      const imageFiles = images.map(({ file }) => file);
       // Post to each platform independently
       if (hasXAccount && xUserId) {
-        promises.push(postToX(xUserId, jsonToText(editor!.getJSON()), images.map(({ file }) => file))
+        promises.push(postToX(xUserId, content, imageFiles)
           .then((url) => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "X" ? { ...ps, status: "success", url } : ps
@@ -139,7 +141,7 @@ const Content: React.FC = () => {
       }
 
       if (hasThreadsAccount && threadsUserId) {
-        promises.push(postToThreads(threadsUserId, jsonToText(editor!.getJSON()))
+        promises.push(postToThreads(threadsUserId, content, imageFiles)
           .then((url) => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "Threads" ? { ...ps, status: "success", url } : ps
