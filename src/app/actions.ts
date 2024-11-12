@@ -8,7 +8,7 @@ import { TwitterApi } from "twitter-api-v2";
 export const postToX = async (
   userId: string,
   content: string,
-  images: File[]
+  mediaFiles: File[]
 ) => {
   console.log("Posting to X:", content);
   try {
@@ -39,11 +39,11 @@ export const postToX = async (
     // OAuth2 (app-only or user context)
     const appOnlyClient = new TwitterApi(accessToken);
 
-    // Upload images to X
+    // Upload media to X
     const mediaIds = await Promise.all(
-      images.map(async (image) =>
-        userClient.v1.uploadMedia(Buffer.from(await image.arrayBuffer()), {
-          mimeType: image.type,
+      mediaFiles.map(async (media) =>
+        userClient.v1.uploadMedia(Buffer.from(await media.arrayBuffer()), {
+          mimeType: media.type,
         })
       )
     );
