@@ -1,4 +1,4 @@
-import { resizeImage } from "@/lib/imageUtils";
+import { resizeImage } from "@/lib/mediaUtils";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';

@@ -1,4 +1,4 @@
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
 export const resizeImage = async (file: File): Promise<File> => {
   if (file.size <= MAX_FILE_SIZE) return file;
@@ -54,3 +54,21 @@ export const resizeImage = async (file: File): Promise<File> => {
     };
   });
 };
+
+export const getVideoDuration = async (file: File): Promise<number> =>
+  new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(video.duration);
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error("Error loading video metadata"));
+    };
+
+    video.src = URL.createObjectURL(file);
+  });

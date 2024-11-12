@@ -2,7 +2,7 @@
 
 import { postToThreads, postToX } from "@/app/actions";
 import { PostError } from "@/lib/errors";
-import { resizeImage } from "@/lib/imageUtils";
+import { getVideoDuration, MAX_FILE_SIZE, resizeImage } from "@/lib/mediaUtils";
 import { jsonToText } from "@/lib/utils";
 import { PlatformStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
@@ -15,7 +15,7 @@ import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
 import Text from "@tiptap/extension-text";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Alert from "./Alert";
 import CharacterCounter from "./CharacterCounter";
 import EditImageModal from "./editor/EditImageModal";
@@ -33,6 +33,7 @@ const Content: React.FC = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [platformStatuses, setPlatformStatuses] = useState<PlatformStatus[]>([]);
+  const [alertMessage, setAlertMessage] = useState('');
   const editor = useEditor({
     extensions: [
       Document,
@@ -67,7 +68,15 @@ const Content: React.FC = () => {
     },
   });
 
+  useEffect(() => {
+    if (!showAlert) {
+      setAlertMessage('');
+    }
+  }, [showAlert]);
+
   if (!signIn) return null;
+
+
 
   const sessions = client.activeSessions || [];
 
@@ -90,6 +99,7 @@ const Content: React.FC = () => {
     const files = Array.from(e.target.files || []);
     if (files.length + media.length > 4) {
       setShowAlert(true);
+      setAlertMessage('Maximum 4 media items allowed');
       setTimeout(() => setShowAlert(false), 3000);
     }
     const newFiles = files.slice(0, 4 - media.length);
@@ -110,26 +120,47 @@ const Content: React.FC = () => {
   };
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (media.length >= 4) {
+    const files = Array.from(e.target.files || []);
+    if (files.length + media.length > 4) {
       setShowAlert(true);
+      setAlertMessage('Maximum 4 media items allowed');
       setTimeout(() => setShowAlert(false), 3000);
-      return;
     }
 
-    // Check file size (max 512MB)
-    if (file.size > 512 * 1024 * 1024) {
-      alert('Video must be less than 512MB');
-      return;
-    }
+    const newFiles = files.slice(0, 4 - media.length);
 
-    setMedia(prev => [...prev, {
-      file,
-      preview: URL.createObjectURL(file),
-      type: 'video' as const
-    }]);
+    // Process each video file
+    for (const file of newFiles) {
+      // Check file size (max 10MB)
+      if (file.size > MAX_FILE_SIZE) {
+        setShowAlert(true);
+        setAlertMessage('Videos must be less than 10MB');
+        setTimeout(() => setShowAlert(false), 3000);
+        continue;
+      }
+
+      // Check video duration
+      try {
+        const duration = await getVideoDuration(file);
+        if (duration > 60) {
+          setShowAlert(true);
+          setAlertMessage('Videos must be less than 60 seconds');
+          setTimeout(() => setShowAlert(false), 3000);
+          continue;
+        }
+
+        setMedia(prev => [...prev, {
+          file,
+          preview: URL.createObjectURL(file),
+          type: 'video' as const
+        }]);
+      } catch (error) {
+        console.error('Error checking video duration:', error);
+        setShowAlert(true);
+        setAlertMessage('Error validating video file');
+        setTimeout(() => setShowAlert(false), 3000);
+      }
+    }
   };
 
   const handlePost = async () => {
@@ -212,7 +243,7 @@ const Content: React.FC = () => {
 
   return (
     <>
-      {showAlert && <Alert message="Maximum 4 images allowed" />}
+      {showAlert && <Alert message={alertMessage} />}
       <div className="relative bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
         {isPostingDisabled && (
           <div className="absolute inset-0 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10">

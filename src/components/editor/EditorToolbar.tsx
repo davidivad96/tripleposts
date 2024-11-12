@@ -32,6 +32,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
       className="hidden"
       id="video-upload"
       disabled={mediaCount >= 4}
+      multiple
     />
     <label
       htmlFor="image-upload"
