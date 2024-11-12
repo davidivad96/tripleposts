@@ -1,6 +1,7 @@
 "use server";
 
 import { PostError } from "@/lib/errors";
+import { isVideoFile } from "@/lib/utils";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TwitterApi } from "twitter-api-v2";
@@ -78,7 +79,7 @@ export const postToX = async (
 export const postToThreads = async (
   userId: string,
   content: string,
-  images: File[]
+  mediaFiles: File[]
 ) => {
   console.log("Posting to Threads:", content);
   const S3 = new S3Client({
@@ -89,15 +90,15 @@ export const postToThreads = async (
       secretAccessKey: process.env.R2_SECRET_KEY!,
     },
   });
-  // Upload images to R2
+  // Upload media to R2
   const URLS = await Promise.all(
-    images.map(async (image) => {
-      const Key = `${userId}/${Date.now()}-${image.name}`;
+    mediaFiles.map(async (media) => {
+      const Key = `${userId}/${Date.now()}-${media.name}`;
       await S3.send(
         new PutObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME!,
           Key,
-          Body: Buffer.from(await image.arrayBuffer()),
+          Body: Buffer.from(await media.arrayBuffer()),
         })
       );
       return `${process.env.R2_BUCKET_PUBLIC_URL}/${Key}`;
@@ -129,14 +130,17 @@ export const postToThreads = async (
     let creationId: string | null = null;
 
     // Create the post
-    const MEDIA_TYPE =
-      URLS.length === 0 ? "TEXT" : URLS.length === 1 ? "IMAGE" : "CAROUSEL";
-    if (MEDIA_TYPE === "CAROUSEL") {
+    if (URLS.length > 1) {
       // Create the carousel items
       const mediaIds = await Promise.all(
-        URLS.map(async (url) => {
+        URLS.map(async (url, i) => {
+          const isVideo = isVideoFile(mediaFiles[i]);
           const res = await fetch(
-            `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=IMAGE&image_url=${url}&is_carousel_item=true&access_token=${accessToken}`,
+            `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=${
+              isVideo ? "VIDEO" : "IMAGE"
+            }&${
+              isVideo ? "video_url" : "image_url"
+            }=${url}&is_carousel_item=true&access_token=${accessToken}`,
             { method: "POST" }
           );
           const { id } = (await res.json()) as { id: string };
@@ -152,60 +156,62 @@ export const postToThreads = async (
       );
       creationId = ((await res.json()) as { id: string }).id;
     } else {
-      const res1 = await fetch(
-        `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=${MEDIA_TYPE}&text=${encodeURIComponent(
-          content
-        )}&${
-          MEDIA_TYPE === "IMAGE" ? `image_url=${URLS[0]}` : ""
-        }&access_token=${accessToken}`,
+      const isVideo = isVideoFile(mediaFiles[0]);
+      const res = await fetch(
+        `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=${
+          isVideo ? "VIDEO" : "IMAGE"
+        }&text=${encodeURIComponent(content)}&${
+          isVideo ? "video_url" : "image_url"
+        }=${URLS[0]}&access_token=${accessToken}`,
         { method: "POST" }
       );
 
-      if (!res1.ok) {
-        const error = await res1.json();
+      if (!res.ok) {
+        const error = await res.json();
         throw new PostError(
           error.message || "Failed to create Threads post",
           "Threads",
-          res1.status
+          res.status
         );
       }
 
-      creationId = ((await res1.json()) as { id: string }).id;
+      creationId = ((await res.json()) as { id: string }).id;
     }
 
     // Publish the post
-    const res2 = await fetch(
+    const res1 = await fetch(
       `https://graph.threads.net/v1.0/${threadsUserId}/threads_publish?creation_id=${creationId}&access_token=${accessToken}`,
       { method: "POST" }
+    );
+
+    if (!res1.ok) {
+      const error = await res1.json();
+      console.log("error: ", error);
+      throw new PostError(
+        error.message || "Failed to publish Threads post",
+        "Threads",
+        res1.status
+      );
+    }
+
+    const { id: mediaId } = (await res1.json()) as { id: string };
+
+    // Get the permalink
+    const res2 = await fetch(
+      `https://graph.threads.net/v1.0/${mediaId}?fields=permalink&access_token=${accessToken}`,
+      { method: "GET" }
     );
 
     if (!res2.ok) {
       const error = await res2.json();
       throw new PostError(
-        error.message || "Failed to publish Threads post",
+        error.message || "Failed to get Threads permalink",
         "Threads",
         res2.status
       );
     }
 
-    const { id: mediaId } = (await res2.json()) as { id: string };
-
-    // Get the permalink
-    const res3 = await fetch(
-      `https://graph.threads.net/v1.0/${mediaId}?fields=permalink&access_token=${accessToken}`,
-      { method: "GET" }
-    );
-
-    if (!res3.ok) {
-      const error = await res3.json();
-      throw new PostError(
-        error.message || "Failed to get Threads permalink",
-        "Threads",
-        res3.status
-      );
-    }
-
-    const { permalink } = (await res3.json()) as { permalink: string };
+    const { permalink } = (await res2.json()) as { permalink: string };
     return permalink;
   } catch (error) {
     if (error instanceof PostError) throw error;

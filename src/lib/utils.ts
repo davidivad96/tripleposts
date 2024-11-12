@@ -29,4 +29,4 @@ export const jsonToText = (json: JSONContent) => {
     .join("");
 };
 
-export const isVideo = (file: File) => file.type.startsWith("video/");
+export const isVideoFile = (file: File) => file.type.startsWith("video/");
