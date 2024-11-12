@@ -20,7 +20,7 @@ import Alert from "./Alert";
 import CharacterCounter from "./CharacterCounter";
 import EditImageModal from "./editor/EditImageModal";
 import EditorToolbar from "./editor/EditorToolbar";
-import ImagePreview from "./editor/ImagePreview";
+import MediaPreview from "./editor/MediaPreview";
 import WarningBanner from "./editor/WarningBanner";
 import ArrowDownIcon from "./icons/ArrowDown";
 import LoadingModal from "./LoadingModal";
@@ -29,9 +29,9 @@ const Content: React.FC = () => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
   const [showWarning, setShowWarning] = useState(true);
-  const [images, setImages] = useState<Array<{ file: File; preview: string }>>([]);
+  const [media, setMedia] = useState<Array<{ file: File; preview: string; type: 'image' | 'video' }>>([]);
   const [showAlert, setShowAlert] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [platformStatuses, setPlatformStatuses] = useState<PlatformStatus[]>([]);
   const editor = useEditor({
     extensions: [
@@ -88,24 +88,48 @@ const Content: React.FC = () => {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + images.length > 4) {
+    if (files.length + media.length > 4) {
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
     }
-    const newFiles = files.slice(0, 4 - images.length);
+    const newFiles = files.slice(0, 4 - media.length);
 
     // Resize images and create previews
-    const processedImages = await Promise.all(
+    const processedMedia = await Promise.all(
       newFiles.map(async (file) => {
         const resizedFile = await resizeImage(file);
         return {
           file: resizedFile,
-          preview: URL.createObjectURL(resizedFile)
+          preview: URL.createObjectURL(resizedFile),
+          type: file.type.includes('image') ? 'image' as const : 'video' as const
         };
       })
     );
 
-    setImages(prev => [...prev, ...processedImages]);
+    setMedia(prev => [...prev, ...processedMedia]);
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (media.length >= 4) {
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
+      return;
+    }
+
+    // Check file size (max 512MB)
+    if (file.size > 512 * 1024 * 1024) {
+      alert('Video must be less than 512MB');
+      return;
+    }
+
+    setMedia(prev => [...prev, {
+      file,
+      preview: URL.createObjectURL(file),
+      type: 'video' as const
+    }]);
   };
 
   const handlePost = async () => {
@@ -124,10 +148,10 @@ const Content: React.FC = () => {
 
       const promises: Promise<void>[] = [];
       const content = jsonToText(editor!.getJSON());
-      const imageFiles = images.map(({ file }) => file);
+      const mediaFiles = media.map(({ file }) => file);
       // Post to each platform independently
       if (hasXAccount && xUserId) {
-        promises.push(postToX(xUserId, content, imageFiles)
+        promises.push(postToX(xUserId, content, mediaFiles)
           .then((url) => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "X" ? { ...ps, status: "success", url } : ps
@@ -141,7 +165,7 @@ const Content: React.FC = () => {
       }
 
       if (hasThreadsAccount && threadsUserId) {
-        promises.push(postToThreads(threadsUserId, content, imageFiles)
+        promises.push(postToThreads(threadsUserId, content, mediaFiles)
           .then((url) => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "Threads" ? { ...ps, status: "success", url } : ps
@@ -159,7 +183,7 @@ const Content: React.FC = () => {
       if (editor) {
         editor.commands.setContent("");
       }
-      setImages([]);
+      setMedia([]);
     } catch (error) {
       console.error("Error posting:", error);
       setPlatformStatuses(prev => prev.map(ps => ({
@@ -170,20 +194,20 @@ const Content: React.FC = () => {
     }
   };
 
-  const handleRemoveImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveMedia = (index: number) => {
+    setMedia(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleEditImage = (index: number) => {
-    setSelectedImageIndex(index);
+  const handleEditMedia = (index: number) => {
+    setSelectedMediaIndex(index);
   };
 
-  const handleSaveEditedImage = (editedImage: { file: File; preview: string }) => {
-    if (selectedImageIndex === null) return;
-    setImages(prev => prev.map((img, i) =>
-      i === selectedImageIndex ? editedImage : img
+  const handleSaveEditedImage = (editedImage: { file: File; preview: string; type: "image" }) => {
+    if (selectedMediaIndex === null) return;
+    setMedia(prev => prev.map((media, i) =>
+      i === selectedMediaIndex ? editedImage : media
     ));
-    setSelectedImageIndex(null);
+    setSelectedMediaIndex(null);
   };
 
   return (
@@ -204,10 +228,10 @@ const Content: React.FC = () => {
           Create Post
         </h2>
         <EditorContent editor={editor} disabled={isPostingDisabled} />
-        <ImagePreview
-          images={images}
-          onRemoveImage={handleRemoveImage}
-          onEditImage={handleEditImage}
+        <MediaPreview
+          media={media}
+          onRemoveMedia={handleRemoveMedia}
+          onEditMedia={handleEditMedia}
         />
         <div className="mt-4 mb-2 space-y-3">
           <WarningBanner
@@ -218,7 +242,8 @@ const Content: React.FC = () => {
             <EditorToolbar
               editor={editor}
               onImageUpload={handleImageUpload}
-              imagesCount={images.length}
+              onVideoUpload={handleVideoUpload}
+              mediaCount={media.length}
             />
             <div className="flex items-center gap-4">
               {!editor?.isEmpty && (
@@ -244,9 +269,9 @@ const Content: React.FC = () => {
         onClose={() => setPlatformStatuses([])}
       />
       <EditImageModal
-        isOpen={selectedImageIndex !== null}
-        image={selectedImageIndex !== null ? images[selectedImageIndex] : null}
-        onClose={() => setSelectedImageIndex(null)}
+        isOpen={selectedMediaIndex !== null}
+        image={selectedMediaIndex !== null ? media[selectedMediaIndex] : null}
+        onClose={() => setSelectedMediaIndex(null)}
         onSave={handleSaveEditedImage}
       />
     </>

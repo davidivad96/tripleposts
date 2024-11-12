@@ -17,7 +17,7 @@ type EditImageModalProps = {
   isOpen: boolean;
   image: { file: File; preview: string } | null;
   onClose: () => void;
-  onSave: (editedImage: { file: File; preview: string }) => void;
+  onSave: (editedImage: { file: File; preview: string; type: 'image' }) => void;
 };
 
 const EditImageModal: React.FC<EditImageModalProps> = ({
@@ -93,6 +93,7 @@ const EditImageModal: React.FC<EditImageModalProps> = ({
       onSave({
         file,
         preview: URL.createObjectURL(file),
+        type: 'image',
       });
       setCrop(DEFAULT_CROP);
       setCompletedCrop(undefined);
