@@ -11,3 +11,10 @@ export type PlatformStatus = {
   url?: string;
   error?: string;
 };
+
+export type ThreadsMediaContainerStatus =
+  | "EXPIRED"
+  | "ERROR"
+  | "FINISHED"
+  | "IN_PROGRESS"
+  | "PUBLISHED";

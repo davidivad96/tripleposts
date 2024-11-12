@@ -2,6 +2,7 @@
 
 import { PostError } from "@/lib/errors";
 import { isVideoFile } from "@/lib/utils";
+import { ThreadsMediaContainerStatus } from "@/types";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TwitterApi } from "twitter-api-v2";
@@ -114,14 +115,14 @@ export const postToThreads = async (
     }
 
     const threadsUserId = userResponse.externalAccounts[0].externalId;
-    const accessToken =
-      userResponse.privateMetadata.accessToken ??
-      (
-        await clerk.users.getUserOauthAccessToken(
-          userId,
-          "oauth_custom_threads"
-        )
-      ).data[0]?.token;
+    const accessToken = userResponse.privateMetadata.accessToken
+      ? (
+          await clerk.users.getUserOauthAccessToken(
+            userId,
+            "oauth_custom_threads"
+          )
+        ).data[0]?.token
+      : null;
 
     if (!accessToken) {
       throw new PostError("Threads access token not found", "Threads");
@@ -144,9 +145,14 @@ export const postToThreads = async (
             { method: "POST" }
           );
           const { id } = (await res.json()) as { id: string };
+
+          // Query for media container until it's ready
+          await checkContainerStatus(id, accessToken);
+
           return id;
         })
       );
+
       // Create the carousel
       const res = await fetch(
         `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=CAROUSEL&children=${mediaIds.join(
@@ -154,6 +160,7 @@ export const postToThreads = async (
         )}&text=${encodeURIComponent(content)}&access_token=${accessToken}`,
         { method: "POST" }
       );
+
       creationId = ((await res.json()) as { id: string }).id;
     } else {
       const isVideo = isVideoFile(mediaFiles[0]);
@@ -177,6 +184,9 @@ export const postToThreads = async (
 
       creationId = ((await res.json()) as { id: string }).id;
     }
+
+    // Query for media container until it's ready
+    await checkContainerStatus(creationId, accessToken);
 
     // Publish the post
     const res1 = await fetch(
@@ -219,5 +229,26 @@ export const postToThreads = async (
       error instanceof Error ? error.message : "Failed to post to Threads",
       "Threads"
     );
+  }
+};
+
+const checkContainerStatus = async (
+  creationId: string,
+  accessToken: string
+) => {
+  let status: ThreadsMediaContainerStatus = "IN_PROGRESS";
+  while (status === "IN_PROGRESS") {
+    const res = await fetch(
+      `https://graph.threads.net/v1.0/${creationId}?fields=status&access_token=${accessToken}`,
+      { method: "GET" }
+    );
+    ({ status } = (await res.json()) as {
+      status: ThreadsMediaContainerStatus;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  if (status === "ERROR") {
+    throw new PostError("Failed to create Threads post", "Threads");
   }
 };
