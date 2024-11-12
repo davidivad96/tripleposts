@@ -35,7 +35,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
       multiple
     />
     <label
-      htmlFor="image-upload"
+      htmlFor={mediaCount >= 4 ? undefined : "image-upload"}
       className={`${mediaCount >= 4
         ? 'opacity-50 cursor-not-allowed'
         : 'cursor-pointer hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800'
@@ -44,7 +44,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
       <ImageIcon />
     </label>
     <label
-      htmlFor="video-upload"
+      htmlFor={mediaCount >= 4 ? undefined : "video-upload"}
       className={`${mediaCount >= 4
         ? 'opacity-50 cursor-not-allowed'
         : 'cursor-pointer hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800'

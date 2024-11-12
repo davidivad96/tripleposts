@@ -76,8 +76,6 @@ const Content: React.FC = () => {
 
   if (!signIn) return null;
 
-
-
   const sessions = client.activeSessions || [];
 
   // Get X session
@@ -98,8 +96,8 @@ const Content: React.FC = () => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + media.length > 4) {
-      setShowAlert(true);
       setAlertMessage('Maximum 4 media items allowed');
+      setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
     }
     const newFiles = files.slice(0, 4 - media.length);
@@ -122,8 +120,8 @@ const Content: React.FC = () => {
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + media.length > 4) {
-      setShowAlert(true);
       setAlertMessage('Maximum 4 media items allowed');
+      setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
     }
 
@@ -133,8 +131,8 @@ const Content: React.FC = () => {
     for (const file of newFiles) {
       // Check file size (max 10MB)
       if (file.size > MAX_FILE_SIZE) {
-        setShowAlert(true);
         setAlertMessage('Videos must be less than 10MB');
+        setShowAlert(true);
         setTimeout(() => setShowAlert(false), 3000);
         continue;
       }
@@ -143,8 +141,8 @@ const Content: React.FC = () => {
       try {
         const duration = await getVideoDuration(file);
         if (duration > 60) {
-          setShowAlert(true);
           setAlertMessage('Videos must be less than 60 seconds');
+          setShowAlert(true);
           setTimeout(() => setShowAlert(false), 3000);
           continue;
         }
@@ -156,8 +154,8 @@ const Content: React.FC = () => {
         }]);
       } catch (error) {
         console.error('Error checking video duration:', error);
-        setShowAlert(true);
         setAlertMessage('Error validating video file');
+        setShowAlert(true);
         setTimeout(() => setShowAlert(false), 3000);
       }
     }
