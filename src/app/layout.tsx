@@ -1,4 +1,5 @@
 import DynamicFavicon from "@/components/DynamicFavicon";
+import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -35,7 +36,8 @@ const RootLayout = ({ children }: RootLayoutProps) => (
         <ThemeProvider attribute="class" defaultTheme="light">
           <DynamicFavicon />
           <Header />
-          {children}
+          <main className="flex-1">{children}</main>
+          <Footer />
           <ThemeToggle />
         </ThemeProvider>
       </body>
