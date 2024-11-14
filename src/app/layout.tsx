@@ -1,7 +1,6 @@
 import DynamicFavicon from "@/components/DynamicFavicon";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import ThemeToggle from "@/components/ThemeToggle";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
@@ -38,7 +37,6 @@ const RootLayout = ({ children }: RootLayoutProps) => (
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
-          <ThemeToggle />
         </ThemeProvider>
       </body>
     </html>

@@ -2,7 +2,7 @@ import ConnectedAccounts from "@/components/ConnectedAccounts";
 import Content from "@/components/Content";
 
 const Home: React.FC = () => (
-  <div className="flex flex-col items-center p-4 mt-20">
+  <div className="flex flex-col items-center p-4 mt-10">
     {/* Hero Section */}
     <div className="w-full max-w-2xl text-center mb-8">
       <p className="text-xl text-gray-600 dark:text-gray-400">
