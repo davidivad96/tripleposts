@@ -175,9 +175,10 @@ const Content: React.FC = () => {
       const xUserId = xSession?.user?.id;
       const threadsUserId = threadsSession?.user?.id;
 
-      const promises: Promise<void>[] = [];
+      const promises: Promise<string | undefined>[] = [];
       const content = jsonToText(editor!.getJSON());
       const mediaFiles = media.map(({ file }) => file);
+
       // Post to each platform independently
       if (hasXAccount && xUserId) {
         promises.push(postToX(xUserId, content, mediaFiles)
@@ -185,11 +186,13 @@ const Content: React.FC = () => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "X" ? { ...ps, status: "success", url } : ps
             ));
+            return url;
           })
           .catch((error: PostError) => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "X" ? { ...ps, status: "error", error: error.message } : ps
             ));
+            return undefined;
           }));
       }
 
@@ -199,20 +202,22 @@ const Content: React.FC = () => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "Threads" ? { ...ps, status: "success", url } : ps
             ));
+            return url;
           })
           .catch((error: PostError) => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "Threads" ? { ...ps, status: "error", error: error.message } : ps
             ));
+            return undefined;
           }));
       }
 
+      const results = await Promise.all(promises);
       // Clear content when all posts are successful
-      await Promise.all(promises);
-      if (editor) {
+      if (editor && results.every(r => r !== undefined)) {
         editor.commands.setContent("");
+        setMedia([]);
       }
-      setMedia([]);
     } catch (error) {
       console.error("Error posting:", error);
       setPlatformStatuses(prev => prev.map(ps => ({

@@ -13,7 +13,7 @@ const ConnectedAccounts: React.FC = () => {
 
   if (!signIn) return null;
 
-  const sessions = client.sessions || [];
+  const sessions = client.activeSessions || [];
 
   const hasXAccount = sessions.some(
     (session) => session.user?.externalAccounts[0].provider === "x"
