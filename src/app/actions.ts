@@ -115,14 +115,14 @@ export const postToThreads = async (
     }
 
     const threadsUserId = userResponse.externalAccounts[0].externalId;
-    const accessToken = userResponse.privateMetadata.accessToken
-      ? (
-          await clerk.users.getUserOauthAccessToken(
-            userId,
-            "oauth_custom_threads"
-          )
-        ).data[0]?.token
-      : null;
+    const accessToken =
+      (userResponse.privateMetadata.accessToken as string) ??
+      (
+        await clerk.users.getUserOauthAccessToken(
+          userId,
+          "oauth_custom_threads"
+        )
+      ).data[0]?.token;
 
     if (!accessToken) {
       throw new PostError("Threads access token not found", "Threads");
@@ -163,13 +163,14 @@ export const postToThreads = async (
 
       creationId = ((await res.json()) as { id: string }).id;
     } else {
+      const noMedia = URLS.length === 0;
       const isVideo = isVideoFile(mediaFiles[0]);
       const res = await fetch(
         `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=${
-          isVideo ? "VIDEO" : "IMAGE"
-        }&text=${encodeURIComponent(content)}&${
-          isVideo ? "video_url" : "image_url"
-        }=${URLS[0]}&access_token=${accessToken}`,
+          noMedia ? "TEXT" : isVideo ? "VIDEO" : "IMAGE"
+        }&text=${encodeURIComponent(content)}${
+          noMedia ? "" : `&${isVideo ? "video_url" : "image_url"}=${URLS[0]}`
+        }&access_token=${accessToken}`,
         { method: "POST" }
       );
 
