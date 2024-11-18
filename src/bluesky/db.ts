@@ -1,11 +1,11 @@
-import SqliteDb from "better-sqlite3";
 import {
   Kysely,
   Migration,
   MigrationProvider,
   Migrator,
-  SqliteDialect,
+  PostgresDialect,
 } from "kysely";
+import { Pool } from "pg";
 
 export type Status = {
   uri: string;
@@ -71,13 +71,18 @@ export type DatabaseSchema = {
   auth_state: AuthState;
 };
 
-export const createDb = (location: string): Database => {
-  return new Kysely<DatabaseSchema>({
-    dialect: new SqliteDialect({
-      database: new SqliteDb(location),
+export const createDb = (): Database =>
+  new Kysely<DatabaseSchema>({
+    dialect: new PostgresDialect({
+      pool: new Pool({
+        host: "ep-round-cloud-a5b20jim-pooler.us-east-2.aws.neon.tech",
+        database: "neondb",
+        user: "neondb_owner",
+        password: "x7ZQdpGqfs8J",
+        ssl: true,
+      }),
     }),
   });
-};
 
 export const migrateToLatest = async (db: Database) => {
   const migrator = new Migrator({ db, provider: migrationProvider });

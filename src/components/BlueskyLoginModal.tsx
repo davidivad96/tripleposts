@@ -21,13 +21,11 @@ const BlueskyLoginModal: React.FC<BlueskyLoginModalProps> = ({
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
     try {
       // Validate handle format
       if (!handle.includes('.')) {
         throw new Error('Please enter a valid Bluesky handle (e.g., username.bsky.social)');
       }
-
       const response = await fetch('/oauth/login', {
         method: 'POST',
         headers: {
@@ -35,12 +33,10 @@ const BlueskyLoginModal: React.FC<BlueskyLoginModalProps> = ({
         },
         body: JSON.stringify({ handle }),
       });
-
       if (!response.ok) {
         const result = await response.json();
         throw new Error(result.error || 'Failed to connect to Bluesky');
       }
-
       const { redirectUrl } = await response.json();
       router.replace(redirectUrl);
     } catch (error) {

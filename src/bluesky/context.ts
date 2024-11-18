@@ -68,7 +68,7 @@ export class StateStore implements NodeSavedStateStore {
     await this.db
       .insertInto("auth_state")
       .values({ key, state })
-      .onConflict((oc) => oc.doUpdateSet({ state }))
+      .onConflict((oc) => oc.column("key").doUpdateSet({ state }))
       .execute();
   };
 
@@ -95,7 +95,7 @@ export class SessionStore implements NodeSavedSessionStore {
     await this.db
       .insertInto("auth_session")
       .values({ key, session })
-      .onConflict((oc) => oc.doUpdateSet({ session }))
+      .onConflict((oc) => oc.column("key").doUpdateSet({ session }))
       .execute();
   };
 
@@ -139,15 +139,14 @@ export type AppContext = {
   resolver: BidirectionalResolver;
 };
 
-export const createContext = async (DB_PATH: string) => {
-  const db = createDb(DB_PATH);
+export const createContext = async () => {
+  const db = createDb();
   await migrateToLatest(db);
   const stateStore = new StateStore(db);
   const sessionStore = new SessionStore(db);
   const oauthClient = await createClient(stateStore, sessionStore);
   const baseIdResolver = createIdResolver();
   const resolver = createBidirectionalResolver(baseIdResolver);
-
   return {
     db,
     oauthClient,

@@ -42,7 +42,7 @@ const handleLogout = async () => {
     password: process.env.COOKIE_SECRET!,
   });
   session.destroy();
-  return Response.json({ success: true });
+  return NextResponse.json({ success: true });
 };
 
 export const GET = async (
