@@ -75,10 +75,10 @@ export const createDb = (): Database =>
   new Kysely<DatabaseSchema>({
     dialect: new PostgresDialect({
       pool: new Pool({
-        host: "ep-round-cloud-a5b20jim-pooler.us-east-2.aws.neon.tech",
-        database: "neondb",
-        user: "neondb_owner",
-        password: "x7ZQdpGqfs8J",
+        host: process.env.NEON_DB_HOST,
+        database: process.env.NEON_DB_DATABASE,
+        user: process.env.NEON_DB_USER,
+        password: process.env.NEON_DB_PASSWORD,
         ssl: true,
       }),
     }),
