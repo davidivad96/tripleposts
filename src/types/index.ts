@@ -1,3 +1,5 @@
+import { ProfileViewDetailed } from "@atproto/api/dist/client/types/app/bsky/actor/defs";
+
 export type PostStatus =
   | "idle"
   | "loading"
@@ -18,3 +20,8 @@ export type ThreadsMediaContainerStatus =
   | "FINISHED"
   | "IN_PROGRESS"
   | "PUBLISHED";
+
+export type ExtraSession = {
+  provider: string;
+  profile: ProfileViewDetailed;
+};

@@ -1,15 +1,28 @@
 "use client";
 
+import { ExtraSession } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import { OAuthStrategy } from "@clerk/types";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import BlueskyLoginModal from "./BlueskyLoginModal";
+import BlueskyIcon from "./icons/Bluesky";
 import SignOutIcon from "./icons/SignOut";
 import ThreadsIcon from "./icons/Threads";
 import XIcon from "./icons/X";
 
-const ConnectedAccounts: React.FC = () => {
+type ConnectedAccountsProps = {
+  extraSessions: ExtraSession[];
+};
+
+const ConnectedAccounts: React.FC<ConnectedAccountsProps> = ({
+  extraSessions,
+}) => {
   const { signIn } = useSignIn();
   const { client, signOut } = useClerk();
+  const [showBlueskyModal, setShowBlueskyModal] = useState(false);
+  const router = useRouter();
 
   if (!signIn) return null;
 
@@ -21,6 +34,10 @@ const ConnectedAccounts: React.FC = () => {
 
   const hasThreadsAccount = sessions.some(
     (session) => session.user?.externalAccounts[0].provider === "custom_threads"
+  );
+
+  const hasBlueskyAccount = extraSessions.some(
+    (session) => session.provider === "bluesky"
   );
 
   const signInWith = (strategy: OAuthStrategy) =>
@@ -72,8 +89,47 @@ const ConnectedAccounts: React.FC = () => {
             </div>
           </div>
         ))}
+        {extraSessions.map((session) => (
+          <div
+            key={session.provider}
+            className="flex items-center gap-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+          >
+            <Image
+              src={session.profile.avatar || ""}
+              alt={session.profile.displayName || ""}
+              className="rounded-full"
+              width={40}
+              height={40}
+            />
+            <div className="flex flex-col">
+              <p className="font-medium">{session.profile.displayName}</p>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {session.profile.handle
+                  ? `@${session.profile.handle}`
+                  : ""}
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              {session.provider === "bluesky" ? (
+                <BlueskyIcon />
+              ) : null}
+              <button
+                onClick={async () => {
+                  const response = await fetch('/oauth/logout')
+                  if (response.ok) {
+                    router.refresh();
+                  }
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                title="Sign out"
+              >
+                <SignOutIcon />
+              </button>
+            </div>
+          </div>
+        ))}
         {/* Connect Account Buttons */}
-        {sessions.length < 2 && (
+        {sessions.length < 3 && (
           <div className="space-y-3">
             {!hasXAccount && (
               <button
@@ -93,9 +149,22 @@ const ConnectedAccounts: React.FC = () => {
                 <span>Connect Threads</span>
               </button>
             )}
+            {!hasBlueskyAccount && (
+              <button
+                onClick={() => setShowBlueskyModal(true)}
+                className="flex items-center gap-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 w-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <BlueskyIcon />
+                <span>Connect Bluesky</span>
+              </button>
+            )}
           </div>
         )}
       </div>
+      <BlueskyLoginModal
+        isOpen={showBlueskyModal}
+        onClose={() => setShowBlueskyModal(false)}
+      />
     </div>
   );
 };
