@@ -98,7 +98,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + media.length > 4) {
-      setAlertMessage('Maximum 4 media items allowed');
+      setAlertMessage('Maximum 4 images allowed');
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
     }
@@ -279,7 +279,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   return (
     <>
       {showAlert && <Alert message={alertMessage} />}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 relative">
         {isPostingDisabled && (
           <div className="absolute inset-0 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10">
             <div className="text-center p-4">
