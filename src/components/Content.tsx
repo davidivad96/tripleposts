@@ -65,7 +65,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
     editorProps: {
       attributes: {
         class:
-          "prose dark:prose-invert outline-none focus:ring-0 p-4 rounded-lg bg-gray-100 dark:bg-gray-900 min-h-[90px] max-h-[200px] overflow-y-auto scrollbar-hide",
+          "prose dark:prose-invert outline-none focus:ring-0 p-4 rounded-lg bg-gray-100 dark:bg-gray-900 min-h-[90px] max-h-[200px] overflow-y-auto scrollbar-hide focus-within:border focus-within:border-blue-500 dark:focus-within:border-blue-500",
       },
     },
   });
