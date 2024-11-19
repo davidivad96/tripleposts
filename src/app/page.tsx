@@ -20,19 +20,20 @@ const Home: React.FC = async () => {
   }
 
   return (
-    <div className="flex flex-col items-center p-4">
+    <div className="flex flex-col h-full w-full justify-center">
       {/* Hero Section */}
-      <div className="w-full max-w-2xl text-center mb-8">
-        <p className="text-xl text-gray-600 dark:text-gray-400">
+      <div className="w-full max-w-2xl mx-auto px-4">
+        <p className="text-xl text-gray-600 dark:text-gray-400 text-center">
           Write once, post thrice
         </p>
       </div>
       {/* Main Content */}
-      <main className="w-full max-w-2xl flex-1 flex flex-col gap-6 overflow-y-auto">
-        <Content hasBlueskyAccount={!!agent} />
-        {/* Connected Accounts Section */}
-        <ConnectedAccounts extraSessions={extraSessions} />
-      </main>
+      <div className="w-full max-w-2xl mx-auto px-4 mt-4">
+        <div className="space-y-4">
+          <Content hasBlueskyAccount={!!agent} />
+          <ConnectedAccounts extraSessions={extraSessions} />
+        </div>
+      </div>
     </div>
   );
 };

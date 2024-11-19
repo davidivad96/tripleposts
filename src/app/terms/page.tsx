@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const TermsOfService = () => (
-  <div className="max-w-3xl mx-auto px-4 py-8">
+  <div className="max-w-3xl mx-auto mt-[400px] mb-[60px] px-4">
     <h1 className="text-3xl font-bold mb-8">Terms of Service</h1>
 
     <div className="prose dark:prose-invert">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const PrivacyPolicy = () => (
-  <div className="max-w-3xl mx-auto px-4 py-8">
+  <div className="max-w-3xl mx-auto mt-[100px] mb-[60px] px-4">
     <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
 
     <div className="prose dark:prose-invert">

@@ -28,15 +28,15 @@ type RootLayoutProps = PropsWithChildren;
 
 const RootLayout = ({ children }: RootLayoutProps) => (
   <ClerkProvider>
-    <html lang="en" className="h-full" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col`}
-      >
+    <html lang="en" className="h-full overflow-hidden" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}>
         <ThemeProvider attribute="class" defaultTheme="light">
-          <DynamicFavicon />
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <div className="flex flex-col h-full">
+            <DynamicFavicon />
+            <Header />
+            <main className="flex-1 overflow-y-scroll flex items-center">{children}</main>
+            <Footer />
+          </div>
         </ThemeProvider>
       </body>
     </html>

@@ -65,7 +65,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
     editorProps: {
       attributes: {
         class:
-          "prose dark:prose-invert outline-none focus:ring-0 p-4 rounded-lg bg-gray-100 dark:bg-gray-900 min-h-[90px] max-h-[200px] overflow-y-scroll focus-within:border focus-within:border-blue-500 dark:focus-within:border-blue-500",
+          "prose dark:prose-invert outline-none focus:ring-0 p-4 rounded-lg bg-gray-100 dark:bg-gray-900 min-h-[90px] max-h-[200px] overflow-y-auto scrollbar-hide",
       },
     },
   });
@@ -279,7 +279,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   return (
     <>
       {showAlert && <Alert message={alertMessage} />}
-      <div className="relative bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
         {isPostingDisabled && (
           <div className="absolute inset-0 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10">
             <div className="text-center p-4">
