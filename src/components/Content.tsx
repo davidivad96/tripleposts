@@ -1,9 +1,6 @@
 "use client";
 
-import { postToBluesky, postToThreads, postToX } from "@/app/actions";
-import { PostError } from "@/lib/errors";
 import { resizeImage } from "@/lib/mediaUtils";
-import { jsonToText } from "@/lib/utils";
 import { Media, PlatformStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import Bold from "@tiptap/extension-bold";
@@ -123,80 +120,143 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   };
 
   const handlePost = async () => {
-    if (editor?.isEmpty) return;
+    const content = editor?.getText() || "";
+    const mediaFiles = media.map((m) => m.file);
 
-    // Initialize platform statuses
-    const initialStatuses = [
+    setPlatformStatuses([
       ...(hasXAccount ? [{ platform: "X", status: "loading" }] : []),
       ...(hasThreadsAccount ? [{ platform: "Threads", status: "loading" }] : []),
       ...(hasBlueskyAccount ? [{ platform: "Bluesky", status: "loading" }] : []),
-    ] as PlatformStatus[];
-    setPlatformStatuses(initialStatuses);
+    ] as PlatformStatus[]);
+
+    const promises: Promise<string | undefined>[] = [];
+
+    if (hasXAccount) {
+      const formData = new FormData();
+      formData.append("content", content);
+      formData.append("userId", xSession.user.id);
+      mediaFiles.forEach((file) => {
+        formData.append("mediaFiles", file);
+      });
+
+      promises.push(
+        fetch("/api/postTo/x", {
+          method: "POST",
+          body: formData,
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setPlatformStatuses((prev) =>
+              prev.map((ps) =>
+                ps.platform === "X" ? { ...ps, status: "success", url: data.url } : ps
+              )
+            );
+            return data.url;
+          })
+          .catch((error) => {
+            setPlatformStatuses((prev) =>
+              prev.map((ps) =>
+                ps.platform === "X"
+                  ? { ...ps, status: "error", error: error.message }
+                  : ps
+              )
+            );
+            return undefined;
+          })
+      );
+    }
+
+    if (hasThreadsAccount) {
+      const formData = new FormData();
+      formData.append("content", content);
+      formData.append("userId", threadsSession.user.id);
+      mediaFiles.forEach((file) => {
+        formData.append("mediaFiles", file);
+      });
+
+      promises.push(
+        fetch("/api/postTo/threads", {
+          method: "POST",
+          body: formData,
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setPlatformStatuses((prev) =>
+              prev.map((ps) =>
+                ps.platform === "Threads"
+                  ? { ...ps, status: "success", url: data.url }
+                  : ps
+              )
+            );
+            return data.url;
+          })
+          .catch((error) => {
+            setPlatformStatuses((prev) =>
+              prev.map((ps) =>
+                ps.platform === "Threads"
+                  ? { ...ps, status: "error", error: error.message }
+                  : ps
+              )
+            );
+            return undefined;
+          })
+      );
+    }
+
+    if (hasBlueskyAccount) {
+      const formData = new FormData();
+      formData.append("content", content);
+      mediaFiles.forEach((file) => {
+        formData.append("mediaFiles", file);
+      });
+
+      promises.push(
+        fetch("/api/postTo/bluesky", {
+          method: "POST",
+          body: formData,
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setPlatformStatuses((prev) =>
+              prev.map((ps) =>
+                ps.platform === "Bluesky"
+                  ? { ...ps, status: "success", url: data.url }
+                  : ps
+              )
+            );
+            return data.url;
+          })
+          .catch((error) => {
+            setPlatformStatuses((prev) =>
+              prev.map((ps) =>
+                ps.platform === "Bluesky"
+                  ? { ...ps, status: "error", error: error.message }
+                  : ps
+              )
+            );
+            return undefined;
+          })
+      );
+    }
 
     try {
-      const xUserId = xSession?.user?.id;
-      const threadsUserId = threadsSession?.user?.id;
-
-      const promises: Promise<string | undefined>[] = [];
-      const content = jsonToText(editor!.getJSON());
-      const mediaFiles = media.map(({ file }) => file);
-
-      // Post to each platform independently
-      if (hasXAccount && xUserId) {
-        promises.push(postToX(xUserId, content, mediaFiles)
-          .then((url) => {
-            setPlatformStatuses(prev => prev.map(ps =>
-              ps.platform === "X" ? { ...ps, status: "success", url } : ps
-            ));
-            return url;
-          })
-          .catch((error: PostError) => {
-            setPlatformStatuses(prev => prev.map(ps =>
-              ps.platform === "X" ? { ...ps, status: "error", error: error.message } : ps
-            ));
-            return undefined;
-          }));
-      }
-
-      if (hasThreadsAccount && threadsUserId) {
-        promises.push(postToThreads(threadsUserId, content, mediaFiles)
-          .then((url) => {
-            setPlatformStatuses(prev => prev.map(ps =>
-              ps.platform === "Threads" ? { ...ps, status: "success", url } : ps
-            ));
-            return url;
-          })
-          .catch((error: PostError) => {
-            setPlatformStatuses(prev => prev.map(ps =>
-              ps.platform === "Threads" ? { ...ps, status: "error", error: error.message } : ps
-            ));
-            return undefined;
-          }));
-      }
-
-      if (hasBlueskyAccount) {
-        promises.push(postToBluesky(content, mediaFiles)
-          .then((url) => {
-            setPlatformStatuses(prev => prev.map(ps =>
-              ps.platform === "Bluesky" ? { ...ps, status: "success", url } : ps
-            ));
-            return url;
-          }));
-      }
-
       const results = await Promise.all(promises);
-      // Clear content when all posts are successful
-      if (editor && results.every(r => r !== undefined)) {
+      if (editor && results.every((r) => r !== undefined)) {
         editor.commands.setContent("");
         setMedia([]);
       }
     } catch (error) {
       console.error("Error posting:", error);
-      setPlatformStatuses(prev => prev.map(ps => ({
-        ...ps,
-        status: "error",
-        error: "An unexpected error occurred"
-      })));
+      setPlatformStatuses((prev) =>
+        prev.map((ps) => ({
+          ...ps,
+          status: "error",
+          error: "An unexpected error occurred",
+        }))
+      );
     }
   };
 
