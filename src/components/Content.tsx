@@ -1,6 +1,7 @@
 "use client";
 
 import { resizeImage } from "@/lib/mediaUtils";
+import { jsonToText } from "@/lib/utils";
 import { Media, PlatformStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import Bold from "@tiptap/extension-bold";
@@ -120,7 +121,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   };
 
   const handlePost = async () => {
-    const content = editor?.getText() || "";
+    const content = jsonToText(editor!.getJSON());
     const mediaFiles = media.map((m) => m.file);
 
     setPlatformStatuses([
