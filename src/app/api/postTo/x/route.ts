@@ -75,8 +75,15 @@ export async function POST(request: Request) {
     if (error instanceof PostError) {
       return Response.json({ error: error.message }, { status: 400 });
     }
+    const err = error as { code?: number; message?: string };
+    if (err.code === 429) {
+      return Response.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
+    }
     return Response.json(
-      { error: error instanceof Error ? error.message : "Failed to post to X" },
+      { error: err.message || "Failed to post to X" },
       { status: 500 }
     );
   }
