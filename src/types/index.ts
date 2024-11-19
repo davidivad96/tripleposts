@@ -8,7 +8,7 @@ export type PostStatus =
   | "error";
 
 export type PlatformStatus = {
-  platform: "X" | "Threads";
+  platform: Platform;
   status: PostStatus;
   url?: string;
   error?: string;
@@ -25,3 +25,5 @@ export type ExtraSession = {
   provider: string;
   profile: ProfileViewDetailed;
 };
+
+export type Platform = "X" | "Threads" | "Bluesky";

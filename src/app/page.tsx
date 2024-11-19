@@ -29,7 +29,7 @@ const Home: React.FC = async () => {
       </div>
       {/* Main Content */}
       <main className="w-full max-w-2xl flex-1 flex flex-col gap-6 overflow-y-auto">
-        <Content />
+        <Content hasBlueskyAccount={!!agent} />
         {/* Connected Accounts Section */}
         <ConnectedAccounts extraSessions={extraSessions} />
       </main>

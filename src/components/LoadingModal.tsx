@@ -1,5 +1,6 @@
 import { PlatformStatus } from "@/types";
 import Fireworks from "react-canvas-confetti/dist/presets/fireworks";
+import BlueskyIcon from "./icons/Bluesky";
 import CloseIcon from "./icons/Close";
 import ErrorIcon from "./icons/Error";
 import LoadingIcon from "./icons/LoadingIcon";
@@ -60,7 +61,7 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
                 className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg"
               >
                 <div className="w-5 h-5">
-                  {ps.platform === "X" ? <XIcon /> : <ThreadsIcon />}
+                  {ps.platform === "X" ? <XIcon /> : ps.platform === "Threads" ? <ThreadsIcon /> : <BlueskyIcon />}
                 </div>
                 <div className="flex-1 flex items-center justify-between">
                   {ps.status === "loading" ? (

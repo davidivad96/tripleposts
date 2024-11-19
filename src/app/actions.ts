@@ -1,8 +1,11 @@
 "use server";
 
+import { getSessionAgent } from "@/bluesky/context";
+import { getContext } from "@/bluesky/instrumentation";
 import { PostError } from "@/lib/errors";
 import { isVideoFile } from "@/lib/utils";
 import { ThreadsMediaContainerStatus } from "@/types";
+import { AppBskyEmbedImages, AppBskyEmbedVideo } from "@atproto/api";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TwitterApi } from "twitter-api-v2";
@@ -83,6 +86,27 @@ export const postToThreads = async (
   mediaFiles: File[]
 ) => {
   console.log("Posting to Threads:", content);
+  const checkContainerStatus = async (
+    creationId: string,
+    accessToken: string
+  ) => {
+    let status: ThreadsMediaContainerStatus = "IN_PROGRESS";
+    while (status === "IN_PROGRESS") {
+      const res = await fetch(
+        `https://graph.threads.net/v1.0/${creationId}?fields=status&access_token=${accessToken}`,
+        { method: "GET" }
+      );
+      ({ status } = (await res.json()) as {
+        status: ThreadsMediaContainerStatus;
+      });
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    if (status === "ERROR") {
+      throw new PostError("Failed to create Threads post", "Threads");
+    }
+  };
+
   const S3 = new S3Client({
     region: "auto",
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -233,23 +257,64 @@ export const postToThreads = async (
   }
 };
 
-const checkContainerStatus = async (
-  creationId: string,
-  accessToken: string
+export const postToBluesky = async (
+  content: string,
+  imagesFiles: File[],
+  videoFile: File
 ) => {
-  let status: ThreadsMediaContainerStatus = "IN_PROGRESS";
-  while (status === "IN_PROGRESS") {
-    const res = await fetch(
-      `https://graph.threads.net/v1.0/${creationId}?fields=status&access_token=${accessToken}`,
-      { method: "GET" }
-    );
-    ({ status } = (await res.json()) as {
-      status: ThreadsMediaContainerStatus;
-    });
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
+  console.log("Posting to Bluesky:", content);
+  try {
+    // Get the Bluesky agent
+    const ctx = getContext();
+    const agent = await getSessionAgent(ctx);
+    if (!agent) {
+      throw new PostError("Bluesky account not properly connected", "Bluesky");
+    }
 
-  if (status === "ERROR") {
-    throw new PostError("Failed to create Threads post", "Threads");
+    // Upload the media
+    let videoEmbed: AppBskyEmbedVideo.Main | undefined = undefined;
+    if (videoFile) {
+      const { data } = await agent.uploadBlob(videoFile, {
+        encoding: videoFile.type,
+      });
+      videoEmbed = {
+        $type: "app.bsky.embed.video",
+        video: data.blob,
+        alt: videoFile.name,
+      };
+    }
+    let imagesEmbed: AppBskyEmbedImages.Main | undefined = undefined;
+    if (imagesFiles.length > 0) {
+      imagesEmbed = {
+        $type: "app.bsky.embed.images",
+        images: await Promise.all(
+          imagesFiles.map(async (file) => {
+            const { data } = await agent.uploadBlob(file, {
+              encoding: file.type,
+            });
+            return { image: data.blob, alt: file.name };
+          })
+        ),
+      };
+    }
+    console.log("waiting...");
+    await new Promise((resolve) => setTimeout(resolve, 60000));
+    console.log("posting...");
+    // Post the content
+    const { uri } = await agent.post({
+      text: content,
+      ...(videoEmbed ? { embed: videoEmbed } : {}),
+      ...(imagesEmbed ? { embed: imagesEmbed } : {}),
+    });
+    // Get the user handle and extract the post ID from the URI
+    const handle = await ctx.resolver.resolveDidToHandle(agent.did!);
+    const postId = uri.split("/").pop();
+    return `https://bsky.app/profile/${handle}/post/${postId}`;
+  } catch (error) {
+    if (error instanceof PostError) throw error;
+    throw new PostError(
+      error instanceof Error ? error.message : "Failed to post to Bluesky",
+      "Bluesky"
+    );
   }
 };

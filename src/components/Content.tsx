@@ -1,6 +1,6 @@
 "use client";
 
-import { postToThreads, postToX } from "@/app/actions";
+import { postToBluesky, postToThreads, postToX } from "@/app/actions";
 import { PostError } from "@/lib/errors";
 import { getVideoDuration, MAX_FILE_SIZE, resizeImage } from "@/lib/mediaUtils";
 import { jsonToText } from "@/lib/utils";
@@ -25,7 +25,11 @@ import WarningBanner from "./editor/WarningBanner";
 import ArrowDownIcon from "./icons/ArrowDown";
 import LoadingModal from "./LoadingModal";
 
-const Content: React.FC = () => {
+type ContentProps = {
+  hasBlueskyAccount: boolean;
+};
+
+const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
   const [showWarning, setShowWarning] = useState(true);
@@ -90,7 +94,7 @@ const Content: React.FC = () => {
 
   const hasXAccount = !!xSession;
   const hasThreadsAccount = !!threadsSession;
-  const isPostingDisabled = sessions.length === 0;
+  const isPostingDisabled = sessions.length === 0 && !hasBlueskyAccount;
   const text = editor?.getText();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,6 +172,7 @@ const Content: React.FC = () => {
     const initialStatuses = [
       ...(hasXAccount ? [{ platform: "X", status: "loading" }] : []),
       ...(hasThreadsAccount ? [{ platform: "Threads", status: "loading" }] : []),
+      ...(hasBlueskyAccount ? [{ platform: "Bluesky", status: "loading" }] : []),
     ] as PlatformStatus[];
     setPlatformStatuses(initialStatuses);
 
@@ -209,6 +214,16 @@ const Content: React.FC = () => {
               ps.platform === "Threads" ? { ...ps, status: "error", error: error.message } : ps
             ));
             return undefined;
+          }));
+      }
+
+      if (hasBlueskyAccount) {
+        promises.push(postToBluesky(content, mediaFiles.filter(file => file.type.includes('image')), mediaFiles.find(file => file.type.includes('video'))!)
+          .then((url) => {
+            setPlatformStatuses(prev => prev.map(ps =>
+              ps.platform === "Bluesky" ? { ...ps, status: "success", url } : ps
+            ));
+            return url;
           }));
       }
 
