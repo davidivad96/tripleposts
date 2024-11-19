@@ -3,9 +3,7 @@
 import { getSessionAgent } from "@/bluesky/context";
 import { getContext } from "@/bluesky/instrumentation";
 import { PostError } from "@/lib/errors";
-import { isVideoFile } from "@/lib/utils";
 import { ThreadsMediaContainerStatus } from "@/types";
-import { AppBskyEmbedImages, AppBskyEmbedVideo } from "@atproto/api";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TwitterApi } from "twitter-api-v2";
@@ -158,14 +156,9 @@ export const postToThreads = async (
     if (URLS.length > 1) {
       // Create the carousel items
       const mediaIds = await Promise.all(
-        URLS.map(async (url, i) => {
-          const isVideo = isVideoFile(mediaFiles[i]);
+        URLS.map(async (url) => {
           const res = await fetch(
-            `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=${
-              isVideo ? "VIDEO" : "IMAGE"
-            }&${
-              isVideo ? "video_url" : "image_url"
-            }=${url}&is_carousel_item=true&access_token=${accessToken}`,
+            `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=IMAGE&image_url=${url}&is_carousel_item=true&access_token=${accessToken}`,
             { method: "POST" }
           );
           const { id } = (await res.json()) as { id: string };
@@ -188,13 +181,12 @@ export const postToThreads = async (
       creationId = ((await res.json()) as { id: string }).id;
     } else {
       const noMedia = URLS.length === 0;
-      const isVideo = isVideoFile(mediaFiles[0]);
       const res = await fetch(
         `https://graph.threads.net/v1.0/${threadsUserId}/threads?media_type=${
-          noMedia ? "TEXT" : isVideo ? "VIDEO" : "IMAGE"
-        }&text=${encodeURIComponent(content)}${
-          noMedia ? "" : `&${isVideo ? "video_url" : "image_url"}=${URLS[0]}`
-        }&access_token=${accessToken}`,
+          noMedia ? "TEXT" : "IMAGE"
+        }&${noMedia ? "" : "image_url"}=${URLS[0]}&text=${encodeURIComponent(
+          content
+        )}&access_token=${accessToken}`,
         { method: "POST" }
       );
 
@@ -257,11 +249,7 @@ export const postToThreads = async (
   }
 };
 
-export const postToBluesky = async (
-  content: string,
-  imagesFiles: File[],
-  videoFile: File
-) => {
+export const postToBluesky = async (content: string, mediaFiles: File[]) => {
   console.log("Posting to Bluesky:", content);
   try {
     // Get the Bluesky agent
@@ -271,40 +259,25 @@ export const postToBluesky = async (
       throw new PostError("Bluesky account not properly connected", "Bluesky");
     }
 
-    // Upload the media
-    let videoEmbed: AppBskyEmbedVideo.Main | undefined = undefined;
-    if (videoFile) {
-      const { data } = await agent.uploadBlob(videoFile, {
-        encoding: videoFile.type,
-      });
-      videoEmbed = {
-        $type: "app.bsky.embed.video",
-        video: data.blob,
-        alt: videoFile.name,
-      };
-    }
-    let imagesEmbed: AppBskyEmbedImages.Main | undefined = undefined;
-    if (imagesFiles.length > 0) {
-      imagesEmbed = {
-        $type: "app.bsky.embed.images",
-        images: await Promise.all(
-          imagesFiles.map(async (file) => {
-            const { data } = await agent.uploadBlob(file, {
-              encoding: file.type,
-            });
-            return { image: data.blob, alt: file.name };
-          })
-        ),
-      };
-    }
-    console.log("waiting...");
-    await new Promise((resolve) => setTimeout(resolve, 60000));
-    console.log("posting...");
     // Post the content
     const { uri } = await agent.post({
       text: content,
-      ...(videoEmbed ? { embed: videoEmbed } : {}),
-      ...(imagesEmbed ? { embed: imagesEmbed } : {}),
+      ...(mediaFiles.length > 0
+        ? {
+            embed: {
+              $type: "app.bsky.embed.images",
+              images: await Promise.all(
+                mediaFiles.map(async (file) => {
+                  // Upload the media
+                  const { data } = await agent.uploadBlob(file, {
+                    encoding: file.type,
+                  });
+                  return { image: data.blob, alt: file.name };
+                })
+              ),
+            },
+          }
+        : {}),
     });
     // Get the user handle and extract the post ID from the URI
     const handle = await ctx.resolver.resolveDidToHandle(agent.did!);

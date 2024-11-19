@@ -2,9 +2,9 @@
 
 import { postToBluesky, postToThreads, postToX } from "@/app/actions";
 import { PostError } from "@/lib/errors";
-import { getVideoDuration, MAX_FILE_SIZE, resizeImage } from "@/lib/mediaUtils";
+import { resizeImage } from "@/lib/mediaUtils";
 import { jsonToText } from "@/lib/utils";
-import { PlatformStatus } from "@/types";
+import { Media, PlatformStatus } from "@/types";
 import { useClerk, useSignIn } from "@clerk/nextjs";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
@@ -25,6 +25,7 @@ import WarningBanner from "./editor/WarningBanner";
 import ArrowDownIcon from "./icons/ArrowDown";
 import LoadingModal from "./LoadingModal";
 
+
 type ContentProps = {
   hasBlueskyAccount: boolean;
 };
@@ -33,7 +34,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   const { signIn } = useSignIn();
   const { client } = useClerk();
   const [showWarning, setShowWarning] = useState(true);
-  const [media, setMedia] = useState<Array<{ file: File; preview: string; type: 'image' | 'video' }>>([]);
+  const [media, setMedia] = useState<Media[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [platformStatuses, setPlatformStatuses] = useState<PlatformStatus[]>([]);
@@ -113,56 +114,12 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
         return {
           file: resizedFile,
           preview: URL.createObjectURL(resizedFile),
-          type: file.type.includes('image') ? 'image' as const : 'video' as const
+          type: "image",
         };
       })
     );
 
-    setMedia(prev => [...prev, ...processedMedia]);
-  };
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length + media.length > 4) {
-      setAlertMessage('Maximum 4 media items allowed');
-      setShowAlert(true);
-      setTimeout(() => setShowAlert(false), 3000);
-    }
-
-    const newFiles = files.slice(0, 4 - media.length);
-
-    // Process each video file
-    for (const file of newFiles) {
-      // Check file size (max 10MB)
-      if (file.size > MAX_FILE_SIZE) {
-        setAlertMessage('Videos must be less than 10MB');
-        setShowAlert(true);
-        setTimeout(() => setShowAlert(false), 3000);
-        continue;
-      }
-
-      // Check video duration
-      try {
-        const duration = await getVideoDuration(file);
-        if (duration > 60) {
-          setAlertMessage('Videos must be less than 60 seconds');
-          setShowAlert(true);
-          setTimeout(() => setShowAlert(false), 3000);
-          continue;
-        }
-
-        setMedia(prev => [...prev, {
-          file,
-          preview: URL.createObjectURL(file),
-          type: 'video' as const
-        }]);
-      } catch (error) {
-        console.error('Error checking video duration:', error);
-        setAlertMessage('Error validating video file');
-        setShowAlert(true);
-        setTimeout(() => setShowAlert(false), 3000);
-      }
-    }
+    setMedia(prev => [...prev, ...processedMedia as Media[]]);
   };
 
   const handlePost = async () => {
@@ -218,7 +175,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
       }
 
       if (hasBlueskyAccount) {
-        promises.push(postToBluesky(content, mediaFiles.filter(file => file.type.includes('image')), mediaFiles.find(file => file.type.includes('video'))!)
+        promises.push(postToBluesky(content, mediaFiles)
           .then((url) => {
             setPlatformStatuses(prev => prev.map(ps =>
               ps.platform === "Bluesky" ? { ...ps, status: "success", url } : ps
@@ -251,7 +208,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
     setSelectedMediaIndex(index);
   };
 
-  const handleSaveEditedImage = (editedImage: { file: File; preview: string; type: "image" }) => {
+  const handleSaveEditedImage = (editedImage: Media) => {
     if (selectedMediaIndex === null) return;
     setMedia(prev => prev.map((media, i) =>
       i === selectedMediaIndex ? editedImage : media
@@ -291,7 +248,6 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
             <EditorToolbar
               editor={editor}
               onImageUpload={handleImageUpload}
-              onVideoUpload={handleVideoUpload}
               mediaCount={media.length}
             />
             <div className="flex items-center gap-4">

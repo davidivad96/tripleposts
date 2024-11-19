@@ -1,18 +1,15 @@
 import { Editor } from "@tiptap/react";
 import ImageIcon from "../icons/Image";
-import VideoIcon from "../icons/Video";
 
 type EditorToolbarProps = {
   editor: Editor | null;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onVideoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   mediaCount: number;
 }
 
 const EditorToolbar: React.FC<EditorToolbarProps> = ({
   editor,
   onImageUpload,
-  onVideoUpload,
   mediaCount,
 }) => (
   <div className="flex items-center gap-1">
@@ -25,15 +22,6 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
       disabled={mediaCount >= 4}
       multiple
     />
-    <input
-      type="file"
-      accept="video/mp4, video/quicktime"
-      onChange={onVideoUpload}
-      className="hidden"
-      id="video-upload"
-      disabled={mediaCount >= 4}
-      multiple
-    />
     <label
       htmlFor={mediaCount >= 4 ? undefined : "image-upload"}
       className={`${mediaCount >= 4
@@ -42,15 +30,6 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
         } bg-transparent text-blue-500 dark:text-white p-[8px] rounded-full transition-colors`}
     >
       <ImageIcon />
-    </label>
-    <label
-      htmlFor={mediaCount >= 4 ? undefined : "video-upload"}
-      className={`${mediaCount >= 4
-        ? 'opacity-50 cursor-not-allowed'
-        : 'cursor-pointer hover:bg-blue-600 hover:text-white dark:hover:bg-white dark:hover:text-gray-800'
-        } bg-transparent text-blue-500 dark:text-white p-[8px] rounded-full transition-colors`}
-    >
-      <VideoIcon />
     </label>
     <div className="w-[1px] h-6 bg-gray-200 dark:bg-gray-700 mx-2" />
     <button
