@@ -11,9 +11,9 @@ const PrivacyPolicy = () => (
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">1. Information We Collect</h2>
-        <p>When you use DualPosts, we collect:</p>
+        <p>When you use TriplePosts, we collect:</p>
         <ul className="list-disc pl-6 mb-4">
-          <li>Account information from X (Twitter) and Threads when you connect them</li>
+          <li>Account information from X (Twitter), Threads and Bluesky when you connect them</li>
         </ul>
       </section>
 
@@ -36,8 +36,8 @@ const PrivacyPolicy = () => (
         <h2 className="text-xl font-semibold mb-4">4. Contact Us</h2>
         <p>
           If you have any questions about this Privacy Policy, please contact us at{" "}
-          <a href="mailto:davidivad96+dualposts@gmail.com" className="text-blue-500 hover:underline">
-            davidivad96+dualposts@gmail.com
+          <a href="mailto:davidivad96+tripleposts@gmail.com" className="text-blue-500 hover:underline">
+            davidivad96+tripleposts@gmail.com
           </a>
         </p>
       </section>

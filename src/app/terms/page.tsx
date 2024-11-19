@@ -12,7 +12,7 @@ const TermsOfService = () => (
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">1. Acceptance of Terms</h2>
         <p>
-          By accessing and using DualPosts, you agree to be bound by these Terms of
+          By accessing and using TriplePosts, you agree to be bound by these Terms of
           Service and all applicable laws and regulations.
         </p>
       </section>
@@ -20,7 +20,7 @@ const TermsOfService = () => (
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">2. Service Description</h2>
         <p>
-          DualPosts is a service that allows you to simultaneously post content to
+          TriplePosts is a service that allows you to simultaneously post content to
           multiple social media platforms. We do not guarantee uninterrupted access
           to the service or that it will be error-free.
         </p>
@@ -57,8 +57,8 @@ const TermsOfService = () => (
         <h2 className="text-xl font-semibold mb-4">6. Contact</h2>
         <p>
           For any questions about these Terms, please contact us at{" "}
-          <a href="mailto:davidivad96+dualposts@gmail.com" className="text-blue-500 hover:underline">
-            davidivad96+dualposts@gmail.com
+          <a href="mailto:davidivad96+tripleposts@gmail.com" className="text-blue-500 hover:underline">
+            davidivad96+tripleposts@gmail.com
           </a>
         </p>
       </section>

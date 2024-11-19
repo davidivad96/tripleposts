@@ -5,7 +5,7 @@ const Footer: React.FC = () => (
     <div className="mx-auto px-4 py-6">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          © {new Date().getFullYear()} DualPosts. All rights reserved.
+          © {new Date().getFullYear()} TriplePosts. All rights reserved.
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center">
           <a href="https://x.com/dfodev" target="_blank">Made with ❤️ by @dfodev:</a>

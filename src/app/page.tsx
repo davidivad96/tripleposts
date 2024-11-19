@@ -24,7 +24,7 @@ const Home: React.FC = async () => {
       {/* Hero Section */}
       <div className="w-full max-w-2xl text-center mb-8">
         <p className="text-xl text-gray-600 dark:text-gray-400">
-          Write once, post twice
+          Write once, post thrice
         </p>
       </div>
       {/* Main Content */}

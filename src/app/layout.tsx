@@ -20,8 +20,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "DualPosts",
-  description: "Write once, post twice",
+  title: "TriplePosts",
+  description: "Write once, post thrice",
 };
 
 type RootLayoutProps = PropsWithChildren;

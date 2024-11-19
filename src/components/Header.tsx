@@ -23,13 +23,13 @@ const Header: React.FC = () => {
         <Link href="/" className="flex items-center gap-3">
           <Image
             src={src}
-            alt="DualPosts Logo"
+            alt="TriplePosts Logo"
             width={32}
             height={32}
             className="w-8 h-8"
           />
           <span className="font-mono font-bold text-xl">
-            Dual<span className="text-blue-500">Posts</span>
+            Triple<span className="text-blue-500">Posts</span>
           </span>
         </Link>
         <ThemeToggle />
