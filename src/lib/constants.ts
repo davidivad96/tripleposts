@@ -353,20 +353,6 @@ export const CHARACTERS = {
   },
 } as const;
 
-// Helper function to get the correct character variant
-export const getCharacterVariant = (
-  char: string,
-  isBold: boolean,
-  isItalic: boolean
-): string => {
-  if (!CHARACTERS[char as keyof typeof CHARACTERS]) return char;
-  if (isBold && isItalic)
-    return CHARACTERS[char as keyof typeof CHARACTERS].bold_and_italic;
-  if (isBold) return CHARACTERS[char as keyof typeof CHARACTERS].bold;
-  if (isItalic) return CHARACTERS[char as keyof typeof CHARACTERS].italic;
-  return char;
-};
-
 export const NEW_LINE = `
 
 `;

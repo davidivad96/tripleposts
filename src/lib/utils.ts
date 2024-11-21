@@ -1,5 +1,5 @@
 import { JSONContent } from "@tiptap/react";
-import { getCharacterVariant, NEW_LINE } from "./constants";
+import { CHARACTERS, NEW_LINE } from "./constants";
 
 export const formatText = (json: JSONContent) => {
   if (json.type === "text") {
@@ -30,3 +30,17 @@ export const jsonToText = (json: JSONContent) => {
 };
 
 export const isVideoFile = (file?: File) => file?.type.startsWith("video/");
+
+// Helper function to get the correct character variant
+export const getCharacterVariant = (
+  char: string,
+  isBold: boolean,
+  isItalic: boolean
+): string => {
+  if (!CHARACTERS[char as keyof typeof CHARACTERS]) return char;
+  if (isBold && isItalic)
+    return CHARACTERS[char as keyof typeof CHARACTERS].bold_and_italic;
+  if (isBold) return CHARACTERS[char as keyof typeof CHARACTERS].bold;
+  if (isItalic) return CHARACTERS[char as keyof typeof CHARACTERS].italic;
+  return char;
+};
