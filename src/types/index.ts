@@ -29,3 +29,8 @@ export type ExtraSession = {
 export type Platform = "X" | "Threads" | "Bluesky";
 
 export type Media = { file: File; preview: string; type: "image" };
+
+export type AccountStatus = {
+  platform: Platform;
+  enabled: boolean;
+};

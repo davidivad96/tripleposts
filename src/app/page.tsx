@@ -1,6 +1,5 @@
 import { getSessionAgent } from "@/bluesky/context";
 import { getContext } from "@/bluesky/instrumentation";
-import ConnectedAccounts from "@/components/ConnectedAccounts";
 import Content from "@/components/Content";
 import { ExtraSession } from "@/types";
 
@@ -30,8 +29,7 @@ const Home: React.FC = async () => {
       {/* Main Content */}
       <div className="w-full max-w-2xl mx-auto px-4 mt-4">
         <div className="space-y-4 mb-8">
-          <Content hasBlueskyAccount={!!agent} />
-          <ConnectedAccounts extraSessions={extraSessions} />
+          <Content extraSessions={extraSessions} />
         </div>
       </div>
     </div>

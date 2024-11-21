@@ -2,8 +2,8 @@
 
 import { resizeImage } from "@/lib/mediaUtils";
 import { jsonToText } from "@/lib/utils";
-import { Media, PlatformStatus } from "@/types";
-import { useClerk, useSignIn } from "@clerk/nextjs";
+import { ExtraSession, Media, PlatformStatus } from "@/types";
+import { useClerk } from "@clerk/nextjs";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import HardBreak from "@tiptap/extension-hard-break";
@@ -16,6 +16,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { useEffect, useState } from "react";
 import Alert from "./Alert";
 import CharacterCounter from "./CharacterCounter";
+import ConnectedAccounts from "./ConnectedAccounts";
 import EditImageModal from "./editor/EditImageModal";
 import EditorToolbar from "./editor/EditorToolbar";
 import MediaPreview from "./editor/MediaPreview";
@@ -23,19 +24,18 @@ import WarningBanner from "./editor/WarningBanner";
 import ArrowDownIcon from "./icons/ArrowDown";
 import LoadingModal from "./LoadingModal";
 
-
 type ContentProps = {
-  hasBlueskyAccount: boolean;
+  extraSessions: ExtraSession[];
 };
 
-const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
-  const { signIn } = useSignIn();
+const Content: React.FC<ContentProps> = ({ extraSessions }) => {
   const { client } = useClerk();
   const [showWarning, setShowWarning] = useState(true);
   const [media, setMedia] = useState<Media[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [platformStatuses, setPlatformStatuses] = useState<PlatformStatus[]>([]);
+  const [accountStatuses, setAccountStatuses] = useState<string[]>(["x", "threads", "bluesky"]);
   const [alertMessage, setAlertMessage] = useState('');
   const editor = useEditor({
     extensions: [
@@ -77,9 +77,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
     }
   }, [showAlert]);
 
-  if (!signIn) return null;
-
-  const sessions = client.activeSessions || [];
+  const sessions = client?.activeSessions || [];
 
   // Get X session
   const xSession = sessions.find(
@@ -93,6 +91,9 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
 
   const hasXAccount = !!xSession;
   const hasThreadsAccount = !!threadsSession;
+  const hasBlueskyAccount = extraSessions.some(
+    (session) => session.provider === "bluesky"
+  );
   const isPostingDisabled = sessions.length === 0 && !hasBlueskyAccount;
   const text = editor?.getText();
 
@@ -123,16 +124,19 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
   const handlePost = async () => {
     const content = jsonToText(editor!.getJSON());
     const mediaFiles = media.map((m) => m.file);
+    const isXEnabled = hasXAccount && accountStatuses.includes("x");
+    const isThreadsEnabled = hasThreadsAccount && accountStatuses.includes("threads");
+    const isBlueskyEnabled = hasBlueskyAccount && accountStatuses.includes("bluesky");
 
     setPlatformStatuses([
-      ...(hasXAccount ? [{ platform: "X", status: "loading" }] : []),
-      ...(hasThreadsAccount ? [{ platform: "Threads", status: "loading" }] : []),
-      ...(hasBlueskyAccount ? [{ platform: "Bluesky", status: "loading" }] : []),
+      ...(isXEnabled ? [{ platform: "X", status: "loading" }] : []),
+      ...(isThreadsEnabled ? [{ platform: "Threads", status: "loading" }] : []),
+      ...(isBlueskyEnabled ? [{ platform: "Bluesky", status: "loading" }] : []),
     ] as PlatformStatus[]);
 
     const promises: Promise<string | undefined>[] = [];
 
-    if (hasXAccount) {
+    if (isXEnabled) {
       const formData = new FormData();
       formData.append("content", content);
       formData.append("userId", xSession.user.id);
@@ -168,7 +172,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
       );
     }
 
-    if (hasThreadsAccount) {
+    if (isThreadsEnabled) {
       const formData = new FormData();
       formData.append("content", content);
       formData.append("userId", threadsSession.user.id);
@@ -206,7 +210,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
       );
     }
 
-    if (hasBlueskyAccount) {
+    if (isBlueskyEnabled) {
       const formData = new FormData();
       formData.append("content", content);
       mediaFiles.forEach((file) => {
@@ -316,7 +320,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
                 <CharacterCounter count={text?.trim().length || 0} limit={280} />
               )}
               <button
-                disabled={isPostingDisabled || editor?.isEmpty || platformStatuses.some(ps => ps.status === "loading")}
+                disabled={isPostingDisabled || editor?.isEmpty || platformStatuses.some(ps => ps.status === "loading") || accountStatuses.length === 0}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center group relative"
                 onClick={handlePost}
                 data-post-button
@@ -329,6 +333,7 @@ const Content: React.FC<ContentProps> = ({ hasBlueskyAccount }) => {
           </div>
         </div>
       </div>
+      <ConnectedAccounts extraSessions={extraSessions} accountStatuses={accountStatuses} setAccountStatuses={setAccountStatuses} />
       <LoadingModal
         isOpen={platformStatuses.length > 0}
         platformStatuses={platformStatuses}

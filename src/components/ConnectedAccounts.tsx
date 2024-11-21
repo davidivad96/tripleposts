@@ -11,22 +11,25 @@ import BlueskyIcon from "./icons/Bluesky";
 import SignOutIcon from "./icons/SignOut";
 import ThreadsIcon from "./icons/Threads";
 import XIcon from "./icons/X";
+import Switch from "./Switch";
 
 type ConnectedAccountsProps = {
   extraSessions: ExtraSession[];
+  accountStatuses: string[];
+  setAccountStatuses: (statuses: string[]) => void;
 };
 
 const ConnectedAccounts: React.FC<ConnectedAccountsProps> = ({
   extraSessions,
+  accountStatuses,
+  setAccountStatuses,
 }) => {
   const { signIn } = useSignIn();
   const { client, signOut } = useClerk();
   const [showBlueskyModal, setShowBlueskyModal] = useState(false);
   const router = useRouter();
 
-  if (!signIn) return null;
-
-  const sessions = client.activeSessions || [];
+  const sessions = client?.activeSessions || [];
 
   const hasXAccount = sessions.some(
     (session) => session.user?.externalAccounts[0].provider === "x"
@@ -41,7 +44,7 @@ const ConnectedAccounts: React.FC<ConnectedAccountsProps> = ({
   );
 
   const signInWith = (strategy: OAuthStrategy) =>
-    signIn.authenticateWithRedirect({
+    signIn?.authenticateWithRedirect({
       strategy,
       redirectUrl: "/sso-callback",
       redirectUrlComplete: "/",
@@ -73,7 +76,14 @@ const ConnectedAccounts: React.FC<ConnectedAccountsProps> = ({
                   : ""}
               </span>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
+              <Switch
+                checked={accountStatuses.includes(session.user?.externalAccounts[0].provider === "x" ? "x" : "threads")}
+                onChange={(enabled) => {
+                  const platform = session.user?.externalAccounts[0].provider === "x" ? "x" : "threads";
+                  setAccountStatuses(enabled ? [...accountStatuses, platform] : accountStatuses.filter(s => s !== platform));
+                }}
+              />
               {session.user?.externalAccounts[0].provider === "x" ? (
                 <XIcon />
               ) : (
@@ -109,7 +119,13 @@ const ConnectedAccounts: React.FC<ConnectedAccountsProps> = ({
                   : ""}
               </span>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
+              <Switch
+                checked={accountStatuses.includes(session.provider)}
+                onChange={(enabled) => {
+                  setAccountStatuses(enabled ? [...accountStatuses, session.provider] : accountStatuses.filter(s => s !== session.provider));
+                }}
+              />
               {session.provider === "bluesky" ? (
                 <BlueskyIcon />
               ) : null}
