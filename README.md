@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TriplePosts
+
+Write once, post thrice. A web application that allows you to simultaneously post content to X (Twitter), Threads, and Bluesky.
+
+## Features
+
+- 🚀 Simultaneous posting to multiple platforms
+- 🖼️ Support for images and carousels
+- ✂️ Image cropping and editing
+- 🎨 Dark/Light mode support
+- ⌨️ Rich text formatting (bold, italic)
+- 📱 Responsive design
+
+## Tech Stack
+
+- [Next.js 15](https://nextjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Clerk](https://clerk.com/) for authentication
+- [TipTap](https://tiptap.dev/) for rich text editing
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Create a `.env` file in the root directory with the following variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# X (Twitter)
+X_OAUTH_CONSUMER_API_KEY=
+X_OAUTH_CONSUMER_SECRET=
+X_OAUTH_ACCESS_TOKEN=
+X_OAUTH_ACCESS_TOKEN_SECRET=
 
-## Learn More
+# Threads
+THREADS_APP_SECRET=
 
-To learn more about Next.js, take a look at the following resources:
+# R2 Storage
+R2_BUCKET_NAME=
+R2_BUCKET_PUBLIC_URL=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_ENDPOINT=
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Database
+NEON_DB_HOST=
+NEON_DB_DATABASE=
+NEON_DB_USER=
+NEON_DB_PASSWORD=
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Others
+COOKIE_SECRET=
+```
 
-## Deploy on Vercel
+4. Run the development server:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
